@@ -1,0 +1,120 @@
+@import url("https://fonts.googleapis.com/css?family=Roboto&display=swap");
+
+@tailwind base;
+
+@layer base {
+  html {
+    font-family: "Roboto", sans-serif;
+  }
+}
+@tailwind components;
+@tailwind utilities;
+
+::-webkit-scrollbar {
+  width: 0;
+  display: none;
+}
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+  .fc .fc-button-primary {
+    background-color: rgb(24 24 27);
+    border-color: white;
+    text-transform: capitalize;
+  }
+
+  .fc .fc-button-primary:hover {
+    background-color: rgb(9 9 11);
+    border-color: white;
+    text-transform: capitalize;
+  }
+  .fc .fc-toolbar-title {
+    text-transform: capitalize;
+    font-size: 1.5rem;
+    font-weight: bold;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
+  }
+}
+
+@media (max-width: 426px) {
+  :root {
+    .fc .fc-toolbar-title {
+      font-size: 1rem;
+      font-weight: bold;
+    }
+  }
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+}
+
+/* USERSTREAK STYLES */
+
+.userstreaks-div {
+  @apply bg-white rounded-lg p-1 min-w-fit;
+}
+
+.userstreaks-span {
+  @apply flex justify-center items-center;
+}
+
+.userstreaks-img {
+  @apply w-10 mr-1 lg:w-10;
+}
+
+.userstreak-text-div {
+  @apply text-black  w-24 lg:w-28;
+}
+
+/* SIDEBAR STYLES */
+
+.sidebar-span {
+  @apply flex items-center flex-row px-1 py-2 hover:bg-stone-700 hover:bg-opacity-80 rounded-xl;
+}
+
+.sidebar-button-text {
+  @apply text-xl font-semibold w-36 ml-3;
+}
+
+.large-sidebar-div {
+  @apply lg:px-6 lg:pr-8 lg:border-r-2 lg:flex-col lg:min-h-screen lg:min-w-0 lg:gap-12 lg:justify-normal;
+}
+
+/* LOGIN STYLES */
+
+.input-login {
+  @apply shadow appearance-none border rounded min-w-full py-2 px-3 bg-neutral-800 text-white  outline-none font-bold;
+}
+
+/* USER STATS STYLES */
+
+.userstats-lg {
+  @apply lg:px-4 lg:fixed lg:min-w-[18rem] lg:right-0 lg:top-0 lg:border-l-2;
+}
+
+.userstats-md {
+  @apply md:pb-0 md:max-w-[18rem] md:p-2 md:mt-0  md:w-[30vh];
+}
+
+/*  USER GOALS STYLES */
+
+.new-goal {
+  -webkit-text-stroke-width: 1px; /* largura da borda */
+  -webkit-text-stroke-color: #ffffff; /* cor da borda */
+}

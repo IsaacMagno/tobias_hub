@@ -1,0 +1,90 @@
+[
+  {
+    "name": "Correr 5km",
+    "description": "Correr 5km totais",
+    "rewards": {
+      "xp": 750,
+      "tobiasCoins": 375,
+      "achievementPoints": 5
+    },
+    "date": "22-05-2023",
+    "icon": "/achievementIcons/runAchievement/runBronze.svg"
+  },
+  {
+    "name": "Correr 20km",
+    "description": "Correr 20km totais",
+    "rewards": {
+      "xp": 3000,
+      "tobiasCoins": 1500,
+      "achievementPoints": 10
+    },
+    "date": "22-05-2023",
+    "icon": "/achievementIcons/runAchievement/runSilver.svg"
+  },
+  {
+    "name": "Correr 50km",
+    "description": "Correr 50km totais",
+    "rewards": {
+      "xp": 7500,
+      "tobiasCoins": 3750,
+      "achievementPoints": 15
+    },
+    "date": "25-05-2023",
+    "icon": "/achievementIcons/runAchievement/runGold.svg"
+  },
+  {
+    "name": "Correr 120km",
+    "description": "Correr 120km totais",
+    "rewards": {
+      "xp": 18000,
+      "tobiasCoins": 9000,
+      "achievementPoints": 20
+    },
+    "date": "31-05-2023",
+    "icon": "/achievementIcons/runAchievement/runPlat.svg"
+  },
+  {
+    "name": "Correr 250km",
+    "description": "Correr 250km totais",
+    "rewards": {
+      "xp": 37500,
+      "tobiasCoins": 18750,
+      "achievementPoints": 50
+    },
+    "date": "31-05-2023",
+    "icon": "/achievementIcons/runAchievement/runDiam.svg"
+  },
+  {
+    "name": "Correr 500km",
+    "description": "Correr 500km totais",
+    "rewards": {
+      "xp": 75000,
+      "tobiasCoins": 37500,
+      "achievementPoints": 100
+    },
+    "date": "31-05-2023",
+    "icon": "/achievementIcons/runAchievement/runMestre.svg"
+  },
+  {
+    "name": "Correr 1000km",
+    "description": "Correr 1000km totais",
+    "rewards": {
+      "xp": 150000,
+      "tobiasCoins": 75000,
+      "achievementPoints": 200
+    },
+    "date": "31-05-2023",
+    "icon": "/achievementIcons/runAchievement/runGraoMestre.svg"
+  },
+  {
+    "name": "Correr 2500km",
+    "description": "Correr 2500km totais",
+    "rewards": {
+      "xp": 375000,
+      "tobiasCoins": 187500,
+      "achievementPoints": 500
+    },
+    "date": "31-05-2023",
+    "icon": "/achievementIcons/runAchievement/runChalle.svg"
+  }
+]
