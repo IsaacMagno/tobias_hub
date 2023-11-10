@@ -6,14 +6,15 @@ const ItemList = ({ marketSelected }) => {
   const [items, setItems] = useState([]);
 
   useEffect(() => {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
     if (marketSelected === "Champions") {
-      fetch("/data/championsStore.json")
+      fetch(`${baseUrl}/items/championsStore`)
         .then((response) => response.json())
-        .then((data) => setItems(data));
+        .then((data) => setItems(data.items));
     } else if (marketSelected === "Tobias") {
-      fetch("/data/tobiasStore.json")
+      fetch(`${baseUrl}/items/tobiasStore`)
         .then((response) => response.json())
-        .then((data) => setItems(data));
+        .then((data) => setItems(data.items));
     }
   }, [marketSelected]);
 

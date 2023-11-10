@@ -4,7 +4,7 @@ import Image from "next/image";
 import userStatsImage from "/public/userStats/stats.svg";
 import Activities from "./Activities";
 
-const userStats = () => {
+const userStats = ({ statistics, activities }) => {
   return (
     <section className="w-full h-full mt-4 pb-28 userstats-md userstats-lg bg-zinc-900">
       <div className="flex items-center justify-evenly gap-2">
@@ -21,7 +21,9 @@ const userStats = () => {
               <p className="w-14">( STR )</p>
               <p>Força</p>
             </span>
-            <p className="text-sm lg:text-[15px] font-bold opacity-80">9999</p>
+            <p className="text-sm lg:text-[15px] font-bold opacity-80">
+              {statistics.strength}
+            </p>
           </span>
         </li>
         <li>
@@ -30,7 +32,9 @@ const userStats = () => {
               <p className="w-14">( DEX )</p>
               <p>Destreza</p>
             </span>
-            <p className="text-sm lg:text-[15px] font-bold opacity-80">9999</p>
+            <p className="text-sm lg:text-[15px] font-bold opacity-80">
+              {statistics.agility}
+            </p>
           </span>
         </li>
         <li>
@@ -39,7 +43,9 @@ const userStats = () => {
               <p className="w-14">( INT )</p>
               <p>Inteligência</p>
             </span>
-            <p className="text-sm lg:text-[15px] font-bold opacity-80">9999</p>
+            <p className="text-sm lg:text-[15px] font-bold opacity-80">
+              {statistics.inteligence}
+            </p>
           </span>
         </li>
         <li>
@@ -48,7 +54,9 @@ const userStats = () => {
               <p className="w-14">( CON )</p>
               <p>Constituição</p>
             </span>
-            <p className="text-sm lg:text-[15px] font-bold opacity-80">9999</p>
+            <p className="text-sm lg:text-[15px] font-bold opacity-80">
+              {statistics.vitality}
+            </p>
           </span>
         </li>
         <li>
@@ -57,12 +65,14 @@ const userStats = () => {
               <p className="w-14">( WIS )</p>
               <p>Sabedoria</p>
             </span>
-            <p className="text-sm lg:text-[15px] font-bold opacity-80">9999</p>
+            <p className="text-sm lg:text-[15px] font-bold opacity-80">
+              {statistics.wisdom}
+            </p>
           </span>
         </li>
       </ul>
 
-      <Activities />
+      <Activities activities={activities} />
     </section>
   );
 };

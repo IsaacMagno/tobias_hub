@@ -5,7 +5,7 @@ import Image from "next/image";
 import userActivitiesImage from "/public/userStats/activities.svg";
 import ratesImage from "/public/userStats/rate.svg";
 
-const Activities = () => {
+const Activities = ({ activities }) => {
   const [showRate, setShowRate] = useState(false);
 
   return (
@@ -33,7 +33,7 @@ const Activities = () => {
               <p className="text-sm lg:text-[15px] font-bold opacity-80">5:1</p>
             ) : (
               <p className="text-sm lg:text-[15px] font-bold opacity-80">
-                9999
+                {activities.kmRun}
               </p>
             )}
           </span>
@@ -49,7 +49,7 @@ const Activities = () => {
               </p>
             ) : (
               <p className="text-sm lg:text-[15px] font-bold opacity-80">
-                9999
+                {activities.jumpRope}
               </p>
             )}
           </span>
@@ -63,7 +63,7 @@ const Activities = () => {
               </p>
             ) : (
               <p className="text-sm lg:text-[15px] font-bold opacity-80">
-                9999
+                {activities.kmBike}
               </p>
             )}
           </span>
@@ -79,7 +79,7 @@ const Activities = () => {
               </p>
             ) : (
               <p className="text-sm lg:text-[15px] font-bold opacity-80">
-                9999
+                {activities.upperLimb}
               </p>
             )}
           </span>
@@ -95,7 +95,7 @@ const Activities = () => {
               </p>
             ) : (
               <p className="text-sm lg:text-[15px] font-bold opacity-80">
-                9999
+                {activities.abs}
               </p>
             )}
           </span>
@@ -111,7 +111,7 @@ const Activities = () => {
               </p>
             ) : (
               <p className="text-sm lg:text-[15px] font-bold opacity-80">
-                9999
+                {activities.lowerLimb}
               </p>
             )}
           </span>
@@ -125,7 +125,7 @@ const Activities = () => {
               <p className="text-sm lg:text-[15px] font-bold opacity-80">8:1</p>
             ) : (
               <p className="text-sm lg:text-[15px] font-bold opacity-80">
-                9999
+                {activities.meals}
               </p>
             )}
           </span>
@@ -139,7 +139,7 @@ const Activities = () => {
               </p>
             ) : (
               <p className="text-sm lg:text-[15px] font-bold opacity-80">
-                9999
+                {activities.drinks}
               </p>
             )}
           </span>
@@ -153,7 +153,7 @@ const Activities = () => {
               </p>
             ) : (
               <p className="text-sm lg:text-[15px] font-bold opacity-80">
-                9999
+                {activities.sleep}
               </p>
             )}
           </span>
@@ -167,7 +167,7 @@ const Activities = () => {
               <p className="text-sm lg:text-[15px] font-bold opacity-80">8:1</p>
             ) : (
               <p className="text-sm lg:text-[15px] font-bold opacity-80">
-                9999
+                {activities.study}
               </p>
             )}
           </span>
@@ -181,7 +181,7 @@ const Activities = () => {
               <p className="text-sm lg:text-[15px] font-bold opacity-80">2:1</p>
             ) : (
               <p className="text-sm lg:text-[15px] font-bold opacity-80">
-                9999
+                {activities.meditation}
               </p>
             )}
           </span>
@@ -193,7 +193,7 @@ const Activities = () => {
               <p className="text-sm lg:text-[15px] font-bold opacity-80">3:1</p>
             ) : (
               <p className="text-sm lg:text-[15px] font-bold opacity-80">
-                9999
+                {activities.reading}
               </p>
             )}
           </span>

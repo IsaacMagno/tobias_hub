@@ -12,7 +12,7 @@ function ItemCard(item) {
       onClick={() => setShowMore(!showMore)}
     >
       <div className="flex col-span-2 items-center">
-        <Image src={item.image} alt="item image" width={55} height={55} />
+        <Image src={`/${item.image}`} alt="item image" width={55} height={55} />
         <span className="font-bold text-xs lg:text-sm lg:font-extrabold pl-4">
           {item.name}
         </span>

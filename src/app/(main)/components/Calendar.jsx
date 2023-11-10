@@ -1,3 +1,4 @@
+"use client";
 import React, { useState, useEffect } from "react";
 // import { useSelector, useDispatch } from "react-redux";
 // import { useNavigate } from "react-router-dom";
@@ -18,7 +19,7 @@ import daydgridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import bootstrap5Plugin from "@fullcalendar/bootstrap5";
 
-const Calendar = ({ show }) => {
+const Calendar = ({ show, calendar }) => {
   const [color, selectColor] = useState("green");
   const [events, setEvents] = useState();
 
@@ -28,63 +29,61 @@ const Calendar = ({ show }) => {
   // const { selectedChampion } = useSelector((state) => state.champions);
   // const { user, logged } = useSelector((state) => state.user);
 
-  // useEffect(() => {
-  //   if (!logged) return navigate("/");
+  useEffect(() => {
+    // if (!logged) return navigate("/");
 
-  //   const {
-  //     calendars: { events },
-  //   } = selectedChampion;
+    const { events } = calendar;
 
-  //   const filteredEvents = events.map((ev) => {
-  //     const eventObj = {
-  //       title: ev.title,
-  //       date: ev.date,
-  //       display: ev.display,
-  //       backgroundColor: ev.backgroundColor,
-  //     };
+    const filteredEvents = events.map((ev) => {
+      const eventObj = {
+        title: ev.title,
+        date: ev.date,
+        display: ev.display,
+        backgroundColor: ev.backgroundColor,
+      };
 
-  //     return eventObj;
-  //   });
+      return eventObj;
+    });
 
-  //   setEvents(filteredEvents);
-  // }, [selectedChampion]);
+    setEvents(filteredEvents);
+  }, []);
 
-  // const handleDateClick = async (dateClickInfo) => {
-  //   const { id } = user;
+  const handleDateClick = async (dateClickInfo) => {
+    const id = calendar.champion_id;
 
-  //   const calendarApi = dateClickInfo.view.calendar;
+    const calendarApi = dateClickInfo.view.calendar;
 
-  //   const allEvents = calendarApi.getEvents();
+    const allEvents = calendarApi.getEvents();
 
-  //   const eventExists = allEvents.filter(
-  //     (day) => day.startStr === dateClickInfo.dateStr
-  //   );
+    const eventExists = allEvents.filter(
+      (day) => day.startStr === dateClickInfo.dateStr
+    );
 
-  //   if (eventExists.length) {
-  //     eventExists[0].remove();
-  //     var date = {
-  //       date: dateClickInfo.dateStr,
-  //     };
-  //     await removeEvent(date, id);
-  //   } else {
-  //     var newEvent = {
-  //       title: "",
-  //       date: dateClickInfo.dateStr,
-  //       display: "background",
-  //       backgroundColor: color,
-  //     };
-  //     calendarApi.addEvent(newEvent);
-  //     await addEvent(newEvent, id);
-  //     await updateDaystreak(id);
-  //   }
+    if (eventExists.length) {
+      eventExists[0].remove();
+      var date = {
+        date: dateClickInfo.dateStr,
+      };
+      await removeEvent(date, id);
+    } else {
+      var newEvent = {
+        title: "",
+        date: dateClickInfo.dateStr,
+        display: "background",
+        backgroundColor: color,
+      };
+      calendarApi.addEvent(newEvent);
+      // await addEvent(newEvent, id);
+      // await updateDaystreak(id);
+    }
 
-  //   const updatedChampionStats = await getStats(id).then(
-  //     (championUpdated) => championUpdated
-  //   );
+    // const updatedChampionStats = await getStats(id).then(
+    //   (championUpdated) => championUpdated
+    // );
 
-  //   dispatch(setUser(updatedChampionStats));
-  //   dispatch(selectChampion(updatedChampionStats));
-  // };
+    // dispatch(setUser(updatedChampionStats));
+    // dispatch(selectChampion(updatedChampionStats));
+  };
 
   return show ? (
     <div className="flex flex-col justify-center p-2 ">
@@ -109,7 +108,7 @@ const Calendar = ({ show }) => {
         <FullCalendar
           plugins={[daydgridPlugin, interactionPlugin, bootstrap5Plugin]}
           locale="pt-br"
-          // dateClick={handleDateClick}
+          dateClick={handleDateClick}
           height={"31rem"}
           events={events}
         />

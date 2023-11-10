@@ -1,4 +1,6 @@
 import "./globals.css";
+import NextAuthSessionProvider from "../providers/sessionProvider";
+// import { GlobalProvider } from "./services/state";
 
 export const metadata = {
   title: "Tobias Hub",
@@ -8,7 +10,10 @@ export const metadata = {
 const RootLayout = ({ children }) => {
   return (
     <html lang="pt">
-      <body>{children}</body>
+      <body>
+        {/* <GlobalProvider>{children}</GlobalProvider> */}
+        <NextAuthSessionProvider>{children}</NextAuthSessionProvider>
+      </body>
     </html>
   );
 };

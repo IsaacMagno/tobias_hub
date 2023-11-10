@@ -1,10 +1,11 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
-import MonkeyImage from "/public/tobs.webp";
 import MiniStatistics from "./LayoutComponents/MiniStatistics";
+import { getQuote, baseUrl } from "../../services/requests";
 
-const UserBiography = ({ displayBio }) => {
+const UserBiography = ({ displayBio, userData }) => {
+  const [quotes, setQuotes] = useState();
   const [windowSize, setWindowSize] = useState({
     width: 0,
     height: 0,
@@ -22,6 +23,13 @@ const UserBiography = ({ displayBio }) => {
 
     handleResize();
 
+    const fetchQuote = async () => {
+      const { quote } = await getQuote();
+      setQuotes(quote);
+    };
+
+    fetchQuote();
+
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
@@ -30,10 +38,8 @@ const UserBiography = ({ displayBio }) => {
       <div className="flex-1 flex-col">
         <div className="flex flex-row justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Tobias</h1>
-            <p className="text-lg font-semibold opacity-80">
-              Chimpanzé Sapiens
-            </p>
+            <h1 className="text-2xl font-bold">{userData.name}</h1>
+            <p className="text-lg font-semibold opacity-80">{userData.title}</p>
           </div>
 
           {windowSize.width <= 639 && (
@@ -41,7 +47,10 @@ const UserBiography = ({ displayBio }) => {
               <Image
                 className="w-20 h-20 rounded-full border-2"
                 alt={"Monkey Image"}
-                src={MonkeyImage}
+                src={`${baseUrl}/images/${userData.files.image}`}
+                width={0}
+                height={0}
+                sizes="100vw"
                 priority
               />
             </div>
@@ -49,22 +58,16 @@ const UserBiography = ({ displayBio }) => {
         </div>
         <div className="flex mt-4 max-w-xl lg:max-w-2xl ">
           {displayBio ? (
-            <span className="text-sm">
-              Se alguém é capaz de me convencer e me evidenciar que o que penso
-              ou faço não é correto, será com contentamento que me corrigirei;
-              afinal, procuro a verdade, a qual jamais causou danos a alguém.
-              Aquele, porém, que persevera no engano e na ignorância causa danos
-              a si mesmo.
-            </span>
+            <span className="text-sm">{userData.biography}</span>
           ) : (
-            <span className="flex flex-col gap-4">
-              <p className="text-sm">
-                Lorem ipsum dolor sit amet consectetur adipisicing elit. Eveniet
-                non eligendi commodi exercitationem! In, omnis. Fugiat illo
-                architecto, nemo excepturi inventore quas deleniti quo delectus
-                minus doloribus quaerat facilis ullam.
-              </p>
-              <p className="text-sm">Autor</p>
+            <span className="flex flex-col gap-4 ">
+              {quotes ? (
+                <div>
+                  <p className="text-sm">{quotes.quote}</p>
+                  <p className="text-sm">{quotes.author}</p>
+                </div>
+              ) : null}
+
               {windowSize.width <= 639 && (
                 <div className="flex  justify-end">
                   <MiniStatistics />
@@ -80,7 +83,10 @@ const UserBiography = ({ displayBio }) => {
             <Image
               className=" w-44 h-44 rounded-full border-2"
               alt={"Monkey Image"}
-              src={MonkeyImage}
+              src={`${baseUrl}/images/${userData.files.image}`}
+              width={0}
+              height={0}
+              sizes="100vw"
             />
           ) : (
             <div className="">
@@ -88,9 +94,18 @@ const UserBiography = ({ displayBio }) => {
                 <Image
                   className=" w-44 h-44 rounded-full border-2"
                   alt={"Monkey Image"}
-                  src={MonkeyImage}
+                  src={`${baseUrl}/images/${userData.files.image}`}
+                  width={0}
+                  height={0}
+                  sizes="100vw"
                 />
-                <MiniStatistics />
+                <MiniStatistics
+                  tobiasCoins={userData.tobiasCoins}
+                  xp={userData.xp}
+                  level={userData.level}
+                  daystreak={userData.daystreak}
+                  daystreakShield={userData.daystreakShield}
+                />
               </div>
             </div>
           )}
