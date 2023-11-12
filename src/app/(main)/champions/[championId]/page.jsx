@@ -42,7 +42,7 @@ const ChampionPage = () => {
           {/* USER BIOGRAPHY */}
           <UserBiography displayBio={true} userData={championData} />
           {/* USER STATISTICS */}
-          <UserStatistics />
+          <UserStatistics userData={championData} />
           {/* USER ACHIEVEMENTS */}
           <UserAchievements />
         </div>

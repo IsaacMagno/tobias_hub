@@ -118,3 +118,8 @@ body {
   -webkit-text-stroke-width: 1px; /* largura da borda */
   -webkit-text-stroke-color: #ffffff; /* cor da borda */
 }
+
+/*  */
+.min-width-fill {
+  min-width: -webkit-fill-available;
+}

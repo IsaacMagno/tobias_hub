@@ -17,10 +17,11 @@
     "@fullcalendar/react": "^6.1.9",
     "@fullcalendar/timegrid": "^6.1.9",
     "lucide-react": "^0.284.0",
-    "next": "latest",
+    "next": "^14.0.2",
     "next-auth": "^4.24.4",
     "react": "latest",
-    "react-dom": "latest"
+    "react-dom": "latest",
+    "react-loader-spinner": "^5.4.5"
   },
   "devDependencies": {
     "autoprefixer": "latest",

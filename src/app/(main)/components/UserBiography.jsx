@@ -60,17 +60,27 @@ const UserBiography = ({ displayBio, userData }) => {
           {displayBio ? (
             <span className="text-sm">{userData.biography}</span>
           ) : (
-            <span className="flex flex-col gap-4 ">
+            <span className="flex flex-col min-width-fill">
               {quotes ? (
                 <div>
-                  <p className="text-sm">{quotes.quote}</p>
-                  <p className="text-sm">{quotes.author}</p>
+                  <p className="text-sm font-semibold opacity-80">
+                    {quotes.quote}
+                  </p>
+                  <p className="text-sm mt-2 font-bold opacity-50">
+                    {quotes.author}
+                  </p>
                 </div>
               ) : null}
 
               {windowSize.width <= 639 && (
                 <div className="flex  justify-end">
-                  <MiniStatistics />
+                  <MiniStatistics
+                    tobiasCoins={userData.tobiasCoins}
+                    xp={userData.xp}
+                    level={userData.level}
+                    daystreak={userData.daystreak}
+                    daystreakShield={userData.daystreakShield}
+                  />
                 </div>
               )}
             </span>
