@@ -18,10 +18,11 @@ export const doLogin = async (username, password) => {
     }
 
     const data = await response.json();
-    const { token, isValid, champUpdated } = data.validLogin;
+
+    const { token, isValid, champion } = data.validLogin;
 
     if (isValid) {
-      return { champUpdated, token };
+      return { champion, token };
     } else {
       return isValid;
     }
@@ -80,6 +81,248 @@ export const getChampionDataById = async (id, token) => {
     const { champion } = await response.json();
 
     return champion;
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+const intensityMultipliers = {
+  alta: (value) => value * 2,
+  media: (value) => value * 1.5,
+  baixa: (value) => value,
+};
+
+const handleCalculateActivitie = (
+  activitieIntensity = "baixa",
+  activitieValue
+) => {
+  const calculate = intensityMultipliers[activitieIntensity];
+  if (!calculate) {
+    console.log("Intensidade não reconhecida");
+    return;
+  }
+  return calculate(activitieValue);
+};
+
+export const updateActivitie = async (activitieData) => {
+  try {
+    const {
+      championId,
+      selectedActivitie,
+      activitieIntensity,
+      activitieValue,
+      token,
+    } = activitieData;
+
+    const value = handleCalculateActivitie(activitieIntensity, activitieValue);
+
+    const response = await fetch(`${baseUrl}/activities/${championId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: token,
+      },
+      body: JSON.stringify({
+        [selectedActivitie]: value,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+export const addEvent = async (token, event, id) => {
+  try {
+    const response = await fetch(`${baseUrl}/event/${id}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: token,
+      },
+      body: JSON.stringify({
+        event,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+export const removeEvent = async (token, eventDate, id) => {
+  try {
+    const response = await fetch(`${baseUrl}/event/${id}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: token,
+      },
+      body: JSON.stringify({
+        eventDate,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+export const createGoal = async (token, goalData) => {
+  try {
+    const response = await fetch(`${baseUrl}/goal`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: token },
+      body: JSON.stringify({
+        goalData,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+export const updateGoal = async (token, goalData, id) => {
+  try {
+    const response = await fetch(`${baseUrl}/goal/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: token },
+      body: JSON.stringify({
+        goalData,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+export const deleteGoal = async (token, id) => {
+  try {
+    const response = await fetch(`${baseUrl}/goal/${id}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: token,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+export const getAchievements = async () => {
+  try {
+    const response = await fetch(`${baseUrl}/achievements`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+export const buyItem = async (buyData) => {
+  try {
+    const response = await fetch(`${baseUrl}/buyItem`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: buyData.token,
+      },
+      body: JSON.stringify({
+        buyData,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+export const updateChampionBio = async (id, bio, token) => {
+  try {
+    const response = await fetch(`${baseUrl}/champion/bio/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: token,
+      },
+      body: JSON.stringify({
+        bio,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+export const updateDaystreak = async (id, token) => {
+  try {
+    const response = await fetch(`${baseUrl}/champion/daystreak/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: token,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+
+    return await response.json();
   } catch (error) {
     console.error(error);
   }

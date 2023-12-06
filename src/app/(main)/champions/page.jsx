@@ -25,13 +25,13 @@ const SelectChampionPage = () => {
               href={`/champions/${champion.champion_id}`}
               key={champion.champion_id}
             >
-              <div className="flex justify-center items-center">
+              <div className="relative w-64 h-64">
                 <Image
                   src={`${baseUrl}/images/${champion.image}`}
                   alt={champion}
-                  width={300}
-                  height={100}
-                  className="hover:invert  hover:cursor-pointer rounded-lg min-h-[15.5rem]"
+                  layout="fill"
+                  objectFit="cover"
+                  className="w-full h-full hover:invert grayscale contrast-100 brightness-50  hover:cursor-pointer rounded-lg"
                 />
               </div>
             </Link>

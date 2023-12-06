@@ -1,14 +1,14 @@
 import Image from "next/image";
 import React from "react";
 
-import AP from "/public/shopIcons/pa.png";
-import PM from "/public/shopIcons/pm.png";
-import wis from "/public/shopIcons/wis.png";
-import str from "/public/shopIcons/str.png";
-import int from "/public/shopIcons/int.png";
-import dex from "/public/shopIcons/dex.png";
-import con from "/public/shopIcons/con.png";
-import range from "/public/shopIcons/range.png";
+import AP from "/public/shopIcons/pa.webp";
+import PM from "/public/shopIcons/pm.webp";
+import wis from "/public/shopIcons/wis.webp";
+import str from "/public/shopIcons/str.webp";
+import int from "/public/shopIcons/int.webp";
+import dex from "/public/shopIcons/dex.webp";
+import con from "/public/shopIcons/con.webp";
+import range from "/public/shopIcons/range.webp";
 
 const ItemFilter = () => {
   return (

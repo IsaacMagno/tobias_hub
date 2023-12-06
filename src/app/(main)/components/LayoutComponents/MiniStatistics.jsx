@@ -55,7 +55,7 @@ const MiniStatistics = ({
         <span className="flex  items-center cursor-default gap-[0.200rem] ">
           <Image
             src={
-              daystreakShield > 1 ? daystreakShieldImage : daystreakShieldBroken
+              daystreakShield > 0 ? daystreakShieldImage : daystreakShieldBroken
             }
             alt={"daystreak image"}
             className="w-5"

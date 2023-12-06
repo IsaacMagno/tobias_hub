@@ -2,8 +2,17 @@ import SidebarMenu from "./components/LayoutComponents/SidebarMenu";
 import BottombarMenu from "./components/LayoutComponents/BottombarMenu";
 import { Suspense } from "react";
 import Loading from "../loading";
+import { getServerSession } from "next-auth";
+import { nextAuthOptions } from "../api/auth/[...nextauth]/route";
+import { redirect } from "next/navigation";
 
-const AppLayout = ({ children }) => {
+const AppLayout = async ({ children }) => {
+  const session = await getServerSession(nextAuthOptions);
+
+  if (!session) {
+    redirect("/login");
+  }
+
   return (
     <Suspense fallback={<Loading />}>
       <div className="flex flex-col lg:flex-row min-h-screen antialiased text-white bg-zinc-900 ">

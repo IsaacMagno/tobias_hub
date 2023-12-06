@@ -1,9 +1,12 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 
 import AchievementList from "./achievementList";
+import AchivementActivitie from "./achivementActivitie";
 import achievPoints from "/public/userstreak/achievPoints.svg";
+import { useGlobalState } from "../../services/state";
+import { useRouter } from "next/navigation";
 
 const achievementsCategory = [
   {
@@ -30,43 +33,111 @@ const achievementsCategory = [
 
 const page = () => {
   const [sumary, setSumary] = useState("");
+  const [sumaryActivitie, setSumaryActivitie] = useState();
   const [showAchievements, setShowAchievements] = useState(false);
+
+  const {
+    globalState: { champion },
+  } = useGlobalState();
+
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!champion) {
+      router.push("/");
+    }
+  }, [champion]);
 
   return (
     <div className="grid grid-cols-4  min-h-screen bg-zinc-800 rounded-lg pb-16 lg:pb-0">
       <div className="col-span-full pt-12 lg:pt-0 lg:col-span-3 relative">
         <div className="min-w-full fixed inset-x-0 lg:absolute bg-zinc-800 px-4">
-          <div className="flex justify-center">
+          <div className="flex flex-col items-center">
             <span className="font-extrabold text-2xl  p-3 flex items-center">
               <Image src={achievPoints} alt="achievPoints" className="w-10" />
-              <p>999999</p>
+              {champion && <p>{champion.achievementPoints}</p>}
             </span>
+            {!sumary ? (
+              <div>
+                <div className="flex flex-col justify-center items-center min-h-[30rem]">
+                  <h1 className="font-bold text-xl py-10">Selecione um tipo</h1>
+                  <div className="flex gap-6 justify-center items-center">
+                    <Image
+                      src={achievementsCategory[0].icon}
+                      width={0}
+                      height={0}
+                      className="w-10 lg:w-20 cursor-pointer hover:bg-green-400 rounded-full p-1"
+                      onClick={() => {
+                        setSumary("Destreza");
+                        setShowAchievements(false);
+                      }}
+                    />
+                    <Image
+                      src={achievementsCategory[1].icon}
+                      width={0}
+                      height={0}
+                      className="w-10 lg:w-20 cursor-pointer hover:bg-blue-400 rounded-full p-1"
+                      onClick={() => {
+                        setSumary("Força");
+                        setShowAchievements(false);
+                      }}
+                    />
+                    <Image
+                      src={achievementsCategory[2].icon}
+                      width={0}
+                      height={0}
+                      className="w-10 lg:w-20 cursor-pointer hover:bg-red-400 rounded-full p-1"
+                      onClick={() => {
+                        setSumary("Inteligência");
+                        setShowAchievements(false);
+                      }}
+                    />
+                    <Image
+                      src={achievementsCategory[3].icon}
+                      width={0}
+                      height={0}
+                      className="w-10 lg:w-20 cursor-pointer hover:bg-yellow-400 rounded-full p-1"
+                      onClick={() => {
+                        setSumary("Constituição");
+                        setShowAchievements(false);
+                      }}
+                    />
+                    <Image
+                      src={achievementsCategory[4].icon}
+                      width={0}
+                      height={0}
+                      className="w-10 lg:w-20 cursor-pointer hover:bg-purple-600 rounded-full p-1"
+                      onClick={() => {
+                        setSumary("Sabedoria");
+                        setShowAchievements(false);
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </div>
           <div className="mb-2">
-            {sumary === "Destreza" ? (
-              <ul className="bg-zinc-950 flex justify-between text-center p-2 rounded-lg font-extrabold ">
-                <li
-                  className="flex-grow py-2 lg:py-4 text-sm text-white/50 hover:text-white hover:bg-zinc-900 cursor-pointer rounded-lg"
-                  onClick={() => setShowAchievements(!showAchievements)}
-                >
-                  Corrida
-                </li>
-                <li className="flex-grow py-2 lg:py-4 text-sm text-white/50 hover:text-white hover:bg-zinc-900 cursor-pointer rounded-lg">
-                  Salto de corda
-                </li>
-                <li className="flex-grow py-2 lg:py-4 text-sm text-white/50 hover:text-white hover:bg-zinc-900 cursor-pointer rounded-lg">
-                  Bike
-                </li>
-              </ul>
+            {sumary ? (
+              <AchivementActivitie
+                sumary={sumary}
+                setSumaryActivitie={setSumaryActivitie}
+                setShowAchievements={setShowAchievements}
+              />
             ) : null}
           </div>
         </div>
-        {showAchievements ? <AchievementList /> : null}
+        {showAchievements && (
+          <AchievementList
+            sumaryActivitie={sumaryActivitie}
+            champion={champion}
+          />
+        )}
       </div>
       <div className="fixed top-0 inset-x-0 col-span-full border-b lg:border-none lg:static lg:top-auto lg:inset-x-auto lg:col-span-1 text-right bg-zinc-700 lg:rounded-r-lg p-2 ">
         <ul className="flex lg:flex-col gap-2">
           <li
-            className="p-3 rounded-lg cursor-pointer hover:bg-zinc-800 bg-zinc-600  font-extrabold text-sm lg:text-xl "
+            className="p-3 rounded-lg cursor-pointer hover:bg-zinc-800 bg-zinc-600  font-extrabold text-sm lg:text-xl flex items-center lg:block"
             onClick={() => {
               setSumary("");
               setShowAchievements(false);

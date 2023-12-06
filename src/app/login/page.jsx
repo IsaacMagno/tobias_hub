@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import TobiasVintage from "/public/tobias_vintage_sm.webp";
 import { signIn } from "next-auth/react";
+import toast from "react-hot-toast";
 
 const Login = () => {
   const [username, setUsername] = useState();
@@ -21,7 +22,8 @@ const Login = () => {
     });
 
     if (response.error) {
-      console.log(response);
+      // console.log(response);
+      toast.error("Login inválido");
       return;
     }
 

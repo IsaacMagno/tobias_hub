@@ -123,3 +123,9 @@ body {
 .min-width-fill {
   min-width: -webkit-fill-available;
 }
+
+/*  CALENDAR BUTTONS   */
+
+.btn-calendar {
+  @apply w-6 h-6 rounded-full mx-1 shadow-md shadow-black/50;
+}

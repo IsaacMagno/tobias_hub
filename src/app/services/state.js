@@ -5,12 +5,13 @@ const GlobalContext = createContext([{}, () => {}]);
 
 export function GlobalProvider({ children }) {
   const [globalState, setGlobalState] = useState({
-    user: null,
+    champion: null,
     championSelected: null,
+    championActivities: null,
   });
 
   return (
-    <GlobalContext.Provider value={[globalState, setGlobalState]}>
+    <GlobalContext.Provider value={{ globalState, setGlobalState }}>
       {children}
     </GlobalContext.Provider>
   );

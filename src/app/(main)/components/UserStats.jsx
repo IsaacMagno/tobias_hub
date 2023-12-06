@@ -3,8 +3,19 @@ import Image from "next/image";
 
 import userStatsImage from "/public/userStats/stats.svg";
 import Activities from "./Activities";
+import { useGlobalState } from "../../services/state";
 
-const userStats = ({ statistics, activities }) => {
+const UserStats = ({
+  statistics: propStatistics,
+  activities: propActivities,
+}) => {
+  const {
+    globalState: { champion },
+  } = useGlobalState();
+
+  const statistics = !propStatistics ? champion.statistics : propStatistics;
+  const activities = !propActivities ? champion.activities : propActivities;
+
   return (
     <section className="w-full h-full mt-4 pb-28 userstats-md userstats-lg bg-zinc-900">
       <div className="flex items-center justify-evenly gap-2">
@@ -77,4 +88,4 @@ const userStats = ({ statistics, activities }) => {
   );
 };
 
-export default userStats;
+export default UserStats;

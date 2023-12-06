@@ -1,6 +1,7 @@
+import { Toaster } from "react-hot-toast";
 import "./globals.css";
 import NextAuthSessionProvider from "../providers/sessionProvider";
-// import { GlobalProvider } from "./services/state";
+import { GlobalProvider } from "./services/state";
 
 export const metadata = {
   title: "Tobias Hub",
@@ -11,8 +12,10 @@ const RootLayout = ({ children }) => {
   return (
     <html lang="pt">
       <body>
-        {/* <GlobalProvider>{children}</GlobalProvider> */}
-        <NextAuthSessionProvider>{children}</NextAuthSessionProvider>
+        <GlobalProvider>
+          <NextAuthSessionProvider>{children}</NextAuthSessionProvider>
+          <Toaster toastOptions={{ duration: 3000 }} />
+        </GlobalProvider>
       </body>
     </html>
   );

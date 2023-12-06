@@ -16,10 +16,11 @@ const nextAuthOptions = {
           credentials.password
         );
 
-        const user = result;
+        const user = result.champion;
+        const token = result.token;
 
         if (user) {
-          return Promise.resolve(user);
+          return Promise.resolve({ ...user, accessToken: token });
         } else {
           return Promise.resolve(null);
         }
@@ -30,24 +31,28 @@ const nextAuthOptions = {
     signIn: "/login",
   },
   session: {
-    jwt: true,
     maxAge: 60 * 60,
-    // updateAge: 24 * 60 * 60,
   },
   callbacks: {
-    async session(session, user) {
-      session.user = user;
-      return session;
-    },
-    async jwt(token, user) {
+    async jwt({ token, user }) {
+      // console.log("TOKEN: ", token);
+      // console.log("USER: ", user);
+
       if (user) {
-        token = user;
+        token.champion = user;
+        token.accessToken = user.accessToken;
       }
+
       return token;
+    },
+    async session({ session, token }) {
+      session.user = token.champion;
+      session.accessToken = token.accessToken;
+      return session;
     },
   },
 };
 
 const handler = NextAuth(nextAuthOptions);
 
-export { handler as GET, handler as POST };
+export { handler as GET, handler as POST, nextAuthOptions };

@@ -13,12 +13,12 @@ const page = () => {
       {/* Display */}
       <div className="col-span-full lg:col-span-3 bg-zinc-800 lg:rounded-l-lg">
         <div className="flex bg-zinc-950 justify-evenly p-3 lg:rounded-tl-lg">
-          <span
+          {/* <span
             className="text-sm lg:text-base font-extrabold opacity-50 hover:opacity-100"
             onClick={() => setMarketSelected("Champions")}
           >
             Empório dos Campeões
-          </span>
+          </span> */}
           <span
             className="text-sm lg:text-base font-extrabold opacity-50 hover:opacity-100"
             onClick={() => setMarketSelected("Tobias")}
@@ -26,7 +26,7 @@ const page = () => {
             Armazém do Tobias
           </span>
         </div>
-        <div className="grid grid-cols-4 bg-zinc-800 justify-evenly p-3">
+        {/* <div className="grid grid-cols-4 bg-zinc-800 justify-evenly p-3">
           <span className="col-span-2 rounded-lg w-32 ml-4  font-extrabold text-sm opacity-50 hover:opacity-100">
             Nome
           </span>
@@ -36,7 +36,7 @@ const page = () => {
           <span className="rounded-lg w-32  font-extrabold text-sm opacity-50 hover:opacity-100">
             Preço médio
           </span>
-        </div>
+        </div> */}
         <ItemList marketSelected={marketSelected} />
       </div>
       <div className="col-span-full lg:col-span-1 lg:min-h-screen bg-zinc-950 p-2 rounded-r-lg">

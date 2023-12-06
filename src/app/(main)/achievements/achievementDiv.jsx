@@ -2,11 +2,14 @@ import Image from "next/image";
 import React, { useState } from "react";
 
 import xp from "/public/userstreak/xp.svg";
+import achievTemp from "/public/achievementIcons/achievTemp.svg";
+
 import tobiasCoin from "/public/userstreak/tobiasCoin.svg";
 import achievPoints from "/public/userstreak/achievPoints.svg";
 
 const AchievementDiv = (achievement) => {
   const [showMore, setShowMore] = useState(false);
+  const rewards = JSON.parse(achievement.rewards);
 
   return (
     <div
@@ -15,7 +18,7 @@ const AchievementDiv = (achievement) => {
     >
       <div className="flex flex-col items-center">
         <Image
-          src={achievement.icon}
+          src={!achievement.icon ? achievTemp : achievement.icon}
           alt="achievementIcon"
           width={12}
           height={12}
@@ -30,11 +33,11 @@ const AchievementDiv = (achievement) => {
         <div className="flex flex-col lg:flex-row gap-2 justify-center">
           <span className="flex gap-1">
             <Image alt="xp" src={xp} className="w-4 lg:w-7" />
-            <p>{achievement.rewards.xp}</p>
+            <p>{rewards.xp}</p>
           </span>
           <span className="flex gap-1">
             <Image alt="tobiasCoin" src={tobiasCoin} className="w-4 lg:w-7" />
-            <p>{achievement.rewards.tobiasCoins}</p>
+            <p>{rewards.tobiasCoins}</p>
           </span>
         </div>
       </div>
@@ -43,16 +46,18 @@ const AchievementDiv = (achievement) => {
         <span className="flex flex-col lg:flex-row gap-1 items-center ">
           <Image alt="achievementPoints" src={achievPoints} className="w-12" />
           <p className="font-extrabold lg:text-lg">
-            {achievement.rewards.achievementPoints}
+            {rewards.achievementPoints}
           </p>
         </span>
       </div>
       {showMore ? (
         <div className="col-span-full text-center">
           <p className="font-extrabold text-sm">{achievement.description}</p>
-          <p className="font-extrabold text-sm">
-            Completou: {achievement.date}
-          </p>
+          {achievement.completedDate && (
+            <p className="font-extrabold text-sm">
+              Completou: {achievement.completedDate}
+            </p>
+          )}
         </div>
       ) : null}
     </div>

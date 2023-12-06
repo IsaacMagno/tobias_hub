@@ -21,9 +21,11 @@
     "next-auth": "^4.24.4",
     "react": "latest",
     "react-dom": "latest",
+    "react-hot-toast": "^2.4.1",
     "react-loader-spinner": "^5.4.5"
   },
   "devDependencies": {
+    "@flydotio/dockerfile": "^0.4.11",
     "autoprefixer": "latest",
     "postcss": "^8.4.31",
     "tailwindcss": "latest"

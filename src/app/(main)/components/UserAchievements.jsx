@@ -1,4 +1,6 @@
 import React from "react";
+import achievTemp from "/public/achievementIcons/achievTemp.svg";
+import Image from "next/image";
 
 const UserAchievements = () => {
   return (
@@ -8,42 +10,51 @@ const UserAchievements = () => {
         <ul className="flex gap-2 flex-wrap justify-center sm:justify-normal">
           <li className="p-8 lg:p-14 bg-gray-300 rounded-lg">
             <span>
-              <p className="text-black">Imagem</p>
+              {/* <p className="text-black">Imagem</p> */}
+
+              <Image src={achievTemp} width={70} />
             </span>
           </li>
           <li className="p-8 lg:p-14 bg-gray-300 rounded-lg">
             <span>
-              <p className="text-black">Imagem</p>
+              {/* <p className="text-black">Imagem</p> */}
+              <Image src={achievTemp} width={70} />
             </span>
           </li>
           <li className="p-8 lg:p-14 bg-gray-300 rounded-lg">
             <span>
-              <p className="text-black">Imagem</p>
+              {/* <p className="text-black">Imagem</p> */}
+              <Image src={achievTemp} width={70} />
             </span>
           </li>
           <li className="p-8 lg:p-14 bg-gray-300 rounded-lg">
             <span>
-              <p className="text-black">Imagem</p>
+              {/* <p className="text-black">Imagem</p> */}
+              <Image src={achievTemp} width={70} />
             </span>
           </li>
           <li className="p-8 lg:p-14 bg-gray-300 rounded-lg">
             <span>
-              <p className="text-black">Imagem</p>
+              {/* <p className="text-black">Imagem</p> */}
+              <Image src={achievTemp} width={70} />
             </span>
           </li>
           <li className="p-8 lg:p-14 bg-gray-300 rounded-lg">
             <span>
-              <p className="text-black">Imagem</p>
+              {/* <p className="text-black">Imagem</p> */}
+              <Image src={achievTemp} width={70} />
             </span>
           </li>
           <li className="p-8 lg:p-14 bg-gray-300 rounded-lg">
             <span>
-              <p className="text-black">Imagem</p>
+              {/* <p className="text-black">Imagem</p> */}
+              <Image src={achievTemp} width={70} />
             </span>
           </li>
           <li className="p-8 lg:p-14 bg-gray-300 rounded-lg">
             <span>
-              <p className="text-black">Imagem</p>
+              {/* <p className="text-black">Imagem</p> */}
+              <Image src={achievTemp} width={70} />
             </span>
           </li>
         </ul>
