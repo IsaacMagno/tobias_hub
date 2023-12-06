@@ -22,7 +22,8 @@
     "react": "latest",
     "react-dom": "latest",
     "react-hot-toast": "^2.4.1",
-    "react-loader-spinner": "^5.4.5"
+    "react-loader-spinner": "^5.4.5",
+    "sharp": "^0.33.0"
   },
   "devDependencies": {
     "@flydotio/dockerfile": "^0.4.11",

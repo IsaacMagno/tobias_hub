@@ -25,7 +25,7 @@ const SelectChampionPage = () => {
               href={`/champions/${champion.champion_id}`}
               key={champion.champion_id}
             >
-              <div className="relative w-64 h-64">
+              <div className="relative  h-[35vh]">
                 <Image
                   src={`${baseUrl}/images/${champion.image}`}
                   alt={champion}

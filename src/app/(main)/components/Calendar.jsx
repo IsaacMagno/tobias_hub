@@ -10,6 +10,7 @@ import bootstrap5Plugin from "@fullcalendar/bootstrap5";
 
 const Calendar = ({ show, calendar, token }) => {
   const [color, selectColor] = useState("green");
+  const [selectedColor, setSelectedColor] = useState("green");
   const [events, setEvents] = useState();
 
   useEffect(() => {
@@ -71,18 +72,33 @@ const Calendar = ({ show, calendar, token }) => {
       <div className="m-auto">
         <button
           type="button"
-          className="btn-calendar bg-green-600 hover:bg-green-500"
-          onClick={() => selectColor("green")}
+          className={`btn-calendar bg-green-600 hover:bg-green-500 ${
+            selectedColor === "green" ? "bg-green-300" : ""
+          }`}
+          onClick={() => {
+            selectColor("green");
+            setSelectedColor("green");
+          }}
         />
         <button
           type="button"
-          className="btn-calendar bg-yellow-400 hover:bg-yellow-200"
-          onClick={() => selectColor("yellow")}
+          className={`btn-calendar bg-yellow-400 hover:bg-yellow-200 ${
+            selectedColor === "yellow" ? "bg-yellow-200" : ""
+          }`}
+          onClick={() => {
+            selectColor("yellow");
+            setSelectedColor("yellow");
+          }}
         />
         <button
           type="button"
-          className="btn-calendar bg-red-600 hover:bg-red-500"
-          onClick={() => selectColor("red")}
+          className={`btn-calendar bg-red-600 hover:bg-red-500 ${
+            selectedColor === "red" ? "bg-red-300" : ""
+          }`}
+          onClick={() => {
+            selectColor("red");
+            setSelectedColor("red");
+          }}
         />
       </div>
       <div className="my-1 ">

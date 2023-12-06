@@ -213,7 +213,11 @@ const ActivitiesIncrease = ({ championId, token }) => {
                   {activitiesData.activitiesImages.map((actImg) => (
                     <Image
                       src={actImg[0]}
-                      className="w-12 bg-white rounded-full p-1.5 bg-opacity-80 hover:bg-zinc-300 border-zinc-800 border cursor-pointer"
+                      className={`w-12 bg-white rounded-full p-1.5 bg-opacity-80 border-zinc-800 border cursor-pointer ${
+                        selectedActivitie === actImg[2]
+                          ? " bg-opacity-40"
+                          : " hover:bg-opacity-60 "
+                      }`}
                       alt="run"
                       onClick={() => {
                         setActivitiePlaceholder(actImg[1]);
@@ -226,6 +230,23 @@ const ActivitiesIncrease = ({ championId, token }) => {
                     />
                   ))}
                 </div>
+                {/* <div className="flex flex-col gap-6 justify-center">
+                  {activitiesData.activitiesImages.map((actImg) => (
+                    <Image
+                      src={actImg[0]}
+                      className="w-12 bg-white rounded-full p-1.5 bg-opacity-80 hover:bg-zinc-300 border-zinc-800 border cursor-pointer"
+                      alt="run"
+                      onClick={() => {
+                        setActivitiePlaceholder(actImg[1]);
+                        setSelectedActivitie(actImg[2]);
+                      }}
+                      width={0}
+                      height={0}
+                      size={"100vw"}
+                      key={actImg[2]}
+                    />
+                  ))}
+                </div> */}
               </>
             )
           )}

@@ -13,6 +13,8 @@ export const doLogin = async (username, password) => {
       }),
     });
 
+    // console.log(response);
+
     if (!response.ok) {
       throw new Error("Network response was not ok");
     }
@@ -116,7 +118,7 @@ export const updateActivitie = async (activitieData) => {
 
     const value = handleCalculateActivitie(activitieIntensity, activitieValue);
 
-    const response = await fetch(`${baseUrl}/activities/${championId}`, {
+    const response = await fetch(`${baseUrl}/shield/activities/${championId}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -139,7 +141,7 @@ export const updateActivitie = async (activitieData) => {
 
 export const addEvent = async (token, event, id) => {
   try {
-    const response = await fetch(`${baseUrl}/event/${id}`, {
+    const response = await fetch(`${baseUrl}/shield/event/${id}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -162,7 +164,7 @@ export const addEvent = async (token, event, id) => {
 
 export const removeEvent = async (token, eventDate, id) => {
   try {
-    const response = await fetch(`${baseUrl}/event/${id}`, {
+    const response = await fetch(`${baseUrl}/shield/event/${id}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
@@ -264,7 +266,7 @@ export const getAchievements = async () => {
 
 export const buyItem = async (buyData) => {
   try {
-    const response = await fetch(`${baseUrl}/buyItem`, {
+    const response = await fetch(`${baseUrl}/shield/buyItem`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -287,7 +289,7 @@ export const buyItem = async (buyData) => {
 
 export const updateChampionBio = async (id, bio, token) => {
   try {
-    const response = await fetch(`${baseUrl}/champion/bio/${id}`, {
+    const response = await fetch(`${baseUrl}/shield/champion/bio/${id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -310,7 +312,7 @@ export const updateChampionBio = async (id, bio, token) => {
 
 export const updateDaystreak = async (id, token) => {
   try {
-    const response = await fetch(`${baseUrl}/champion/daystreak/${id}`, {
+    const response = await fetch(`${baseUrl}/shield/champion/daystreak/${id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
