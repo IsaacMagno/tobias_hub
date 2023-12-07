@@ -72,8 +72,8 @@ const Calendar = ({ show, calendar, token }) => {
       <div className="m-auto">
         <button
           type="button"
-          className={`btn-calendar bg-green-600 hover:bg-green-500 ${
-            selectedColor === "green" ? "bg-green-300" : ""
+          className={`btn-calendar bg-green-600  ${
+            selectedColor === "green" ? "bg-opacity-60" : "hover:bg-green-500"
           }`}
           onClick={() => {
             selectColor("green");
@@ -82,8 +82,8 @@ const Calendar = ({ show, calendar, token }) => {
         />
         <button
           type="button"
-          className={`btn-calendar bg-yellow-400 hover:bg-yellow-200 ${
-            selectedColor === "yellow" ? "bg-yellow-200" : ""
+          className={`btn-calendar bg-yellow-400  ${
+            selectedColor === "yellow" ? "bg-opacity-60" : "hover:bg-yellow-200"
           }`}
           onClick={() => {
             selectColor("yellow");
@@ -92,8 +92,8 @@ const Calendar = ({ show, calendar, token }) => {
         />
         <button
           type="button"
-          className={`btn-calendar bg-red-600 hover:bg-red-500 ${
-            selectedColor === "red" ? "bg-red-300" : ""
+          className={`btn-calendar bg-red-600  ${
+            selectedColor === "red" ? "bg-opacity-60" : "hover:bg-red-500"
           }`}
           onClick={() => {
             selectColor("red");

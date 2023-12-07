@@ -215,8 +215,8 @@ const ActivitiesIncrease = ({ championId, token }) => {
                       src={actImg[0]}
                       className={`w-12 bg-white rounded-full p-1.5 bg-opacity-80 border-zinc-800 border cursor-pointer ${
                         selectedActivitie === actImg[2]
-                          ? " bg-opacity-40"
-                          : " hover:bg-opacity-60 "
+                          ? "bg-opacity-30"
+                          : "hover:bg-opacity-60 "
                       }`}
                       alt="run"
                       onClick={() => {
