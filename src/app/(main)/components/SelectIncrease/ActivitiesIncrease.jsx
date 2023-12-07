@@ -213,9 +213,9 @@ const ActivitiesIncrease = ({ championId, token }) => {
                   {activitiesData.activitiesImages.map((actImg) => (
                     <Image
                       src={actImg[0]}
-                      className={`w-12 bg-white rounded-full p-1.5 bg-opacity-80 border-zinc-800 border cursor-pointer ${
+                      className={`w-12 bg-zinc-100 rounded-full p-1.5 bg-opacity-80 border-zinc-800 border cursor-pointer ${
                         selectedActivitie === actImg[2]
-                          ? "bg-opacity-30"
+                          ? "bg-zinc-400"
                           : "hover:bg-opacity-60 "
                       }`}
                       alt="run"
