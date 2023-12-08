@@ -9,7 +9,8 @@ import achievPoints from "/public/userstreak/achievPoints.svg";
 
 const AchievementDiv = (achievement) => {
   const [showMore, setShowMore] = useState(false);
-  const rewards = JSON.parse(achievement.rewards);
+  // const rewards = JSON.parse(achievement.rewards);
+  const rewards = achievement.rewards;
 
   return (
     <div

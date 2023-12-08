@@ -9,6 +9,7 @@ import air from "/public/elementIcons/air.svg";
 import fire from "/public/elementIcons/fire.svg";
 import water from "/public/elementIcons/water.svg";
 import earth from "/public/elementIcons/earth.svg";
+import toast from "react-hot-toast";
 
 const activitesTypes = {
   dexterity: {
@@ -45,7 +46,7 @@ const activitesTypes = {
   },
 };
 
-const ActivitiesIncrease = ({ championId, token }) => {
+const ActivitiesIncrease = ({ championId, token, setAchievementCompleted }) => {
   const { globalState, setGlobalState } = useGlobalState();
 
   const [selectedActivitie, setSelectedActivitie] = useState();
@@ -89,7 +90,7 @@ const ActivitiesIncrease = ({ championId, token }) => {
 
     await updateDaystreak(championId, token);
 
-    const { championUpdated } = await updateActivitie({
+    const { championUpdated, achievementCompleted } = await updateActivitie({
       championId,
       selectedActivitie,
       activitieIntensity,
@@ -101,6 +102,10 @@ const ActivitiesIncrease = ({ championId, token }) => {
       ...globalState,
       champion: championUpdated,
     });
+
+    if (achievementCompleted) {
+      setAchievementCompleted(true);
+    }
 
     setActivitieValue();
     setActivitieIntensity();

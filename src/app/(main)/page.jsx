@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 import React, { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 
@@ -11,16 +12,35 @@ import Loading from "./loading.jsx";
 import { getChampionDataById } from "../services/requests";
 import { useGlobalState } from "../services/state";
 
+import achievTemp from "/public/achievementIcons/achievTemp.svg";
+import Image from "next/image.js";
+
 const Home = () => {
   const { globalState, setGlobalState } = useGlobalState();
   const [renderCalendar, setRenderCalendar] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [achievementCompleted, setAchievementCompleted] = useState(false);
 
   const { data: session } = useSession();
 
   const {
     globalState: { champion },
   } = useGlobalState();
+
+  useEffect(() => {
+    if (achievementCompleted) {
+      toast((t) => (
+        <div className="flex justify-center items-center gap-3">
+          <Image src={achievTemp} width={60} />
+          <p className="font-extrabold text-center">
+            Novas conquistas desbloqueadas!
+          </p>
+        </div>
+      ));
+    }
+
+    setAchievementCompleted(false);
+  }, [achievementCompleted]);
 
   useEffect(() => {
     const getChampionData = async () => {
@@ -60,6 +80,7 @@ const Home = () => {
               <ActivitiesIncrease
                 championId={champion.id}
                 token={session.accessToken}
+                setAchievementCompleted={setAchievementCompleted}
               />
             )}
 
