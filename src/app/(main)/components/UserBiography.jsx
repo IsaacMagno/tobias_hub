@@ -40,17 +40,19 @@ const UserBiography = ({ displayBio, userData }) => {
 
     handleResize();
 
+    setChampionUpdatedData(userData);
+
+    return () => window.removeEventListener("resize", handleResize);
+  }, [userData]);
+
+  useEffect(() => {
     const fetchQuote = async () => {
       const { quote } = await getQuote();
       setQuotes(quote);
     };
 
     fetchQuote();
-
-    setChampionUpdatedData(userData);
-
-    return () => window.removeEventListener("resize", handleResize);
-  }, [userData]);
+  }, []);
 
   const handleEditMode = async () => {
     if (editBioMode) {

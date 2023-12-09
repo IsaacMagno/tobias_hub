@@ -87,8 +87,8 @@ const Home = () => {
             <div>
               <Calendar
                 show={renderCalendar}
-                calendar={champion.calendars}
                 token={session.accessToken}
+                championId={champion.id}
               />
             </div>
           </div>

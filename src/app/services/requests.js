@@ -51,6 +51,23 @@ export const getQuote = async () => {
   }
 };
 
+export const getCalendarById = async (id) => {
+  try {
+    const response = await fetch(`${baseUrl}/calendars/${id}`, {
+      method: "GET",
+    });
+
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+
+    const calendar = await response.json();
+    return calendar;
+  } catch (error) {
+    console.error("There has been a problem with your fetch operation:", error);
+  }
+};
+
 export const getChampionsImages = async () => {
   try {
     const response = await fetch(`${baseUrl}/uploads`, { method: "GET" });

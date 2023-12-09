@@ -3,18 +3,23 @@ import Link from "next/link";
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
 import { baseUrl, getChampionsImages } from "../../services/requests";
+import Loading from "../loading";
 
 const SelectChampionPage = () => {
   const [champions, setChampions] = useState();
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const getChampionsImgs = async () => {
       const champImgs = await getChampionsImages();
       setChampions(champImgs);
+      setIsLoading(false);
     };
 
     getChampionsImgs();
   }, []);
+
+  if (isLoading) return <Loading />;
 
   return (
     <div className="min-h-screen grid grid-cols-12 justify-center ">

@@ -61,8 +61,6 @@ const page = () => {
     }
   }, [session, champion]);
 
-  console.log(questsList);
-
   return (
     <div className="flex flex-col-reverse md:flex-row  md:gap-6 justify-center lg:pr-80 lg:min-h-screen lg:box-content ">
       <div className="flex flex-col flex-grow gap-3 pb-24 lg:pb-0">

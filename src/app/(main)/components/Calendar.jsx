@@ -1,33 +1,42 @@
 "use client";
 import React, { useState, useEffect } from "react";
 
-import { addEvent, removeEvent } from "../../services/requests";
+import {
+  addEvent,
+  getCalendarById,
+  removeEvent,
+} from "../../services/requests";
 
 import FullCalendar from "@fullcalendar/react";
 import daydgridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import bootstrap5Plugin from "@fullcalendar/bootstrap5";
 
-const Calendar = ({ show, calendar, token }) => {
+const Calendar = ({ show, token, championId }) => {
   const [color, selectColor] = useState("green");
   const [selectedColor, setSelectedColor] = useState("green");
   const [events, setEvents] = useState();
+  const [calendar, setCalendar] = useState();
 
   useEffect(() => {
-    const { events } = calendar;
+    const getCalendar = async () => {
+      const { calendars } = await getCalendarById(championId);
+      setCalendar(calendars);
 
-    const filteredEvents = events.map((ev) => {
-      const eventObj = {
-        title: ev.title,
-        date: ev.date,
-        display: ev.display,
-        backgroundColor: ev.backgroundColor,
-      };
+      const filteredEvents = calendars.events.map((ev) => {
+        const eventObj = {
+          title: ev.title,
+          date: ev.date,
+          display: ev.display,
+          backgroundColor: ev.backgroundColor,
+        };
 
-      return eventObj;
-    });
+        return eventObj;
+      });
+      setEvents(filteredEvents);
+    };
 
-    setEvents(filteredEvents);
+    getCalendar();
   }, []);
 
   const handleDateClick = async (dateClickInfo) => {
