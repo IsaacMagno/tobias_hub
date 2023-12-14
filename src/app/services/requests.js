@@ -13,8 +13,6 @@ export const doLogin = async (username, password) => {
       }),
     });
 
-    // console.log(response);
-
     if (!response.ok) {
       throw new Error("Network response was not ok");
     }
@@ -105,24 +103,6 @@ export const getChampionDataById = async (id, token) => {
   }
 };
 
-const intensityMultipliers = {
-  alta: (value) => value * 2,
-  media: (value) => value * 1.5,
-  baixa: (value) => value,
-};
-
-const handleCalculateActivitie = (
-  activitieIntensity = "baixa",
-  activitieValue
-) => {
-  const calculate = intensityMultipliers[activitieIntensity];
-  if (!calculate) {
-    console.log("Intensidade não reconhecida");
-    return;
-  }
-  return calculate(activitieValue);
-};
-
 export const updateActivitie = async (activitieData) => {
   try {
     const {
@@ -133,8 +113,6 @@ export const updateActivitie = async (activitieData) => {
       token,
     } = activitieData;
 
-    const value = handleCalculateActivitie(activitieIntensity, activitieValue);
-
     const response = await fetch(`${baseUrl}/shield/activities/${championId}`, {
       method: "PUT",
       headers: {
@@ -142,7 +120,8 @@ export const updateActivitie = async (activitieData) => {
         Authorization: token,
       },
       body: JSON.stringify({
-        [selectedActivitie]: value,
+        [selectedActivitie]: activitieValue,
+        activitieIntensity,
       }),
     });
 
