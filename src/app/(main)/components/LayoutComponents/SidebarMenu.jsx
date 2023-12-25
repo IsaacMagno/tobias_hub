@@ -102,7 +102,7 @@ const SidebarMenu = () => {
         </li>
         <li>
           <Link
-            href="/404"
+            href="/tools"
             className="flex items-center flex-row px-1 py-2 hover:bg-stone-700 hover:bg-opacity-80 rounded-md hover:cursor-pointer"
           >
             <div>
@@ -113,7 +113,7 @@ const SidebarMenu = () => {
                 height={40}
               />
             </div>
-            <span className="sidebar-button-text">Ajustes</span>
+            <span className="sidebar-button-text">Ferramentas</span>
           </Link>
         </li>
       </ul>

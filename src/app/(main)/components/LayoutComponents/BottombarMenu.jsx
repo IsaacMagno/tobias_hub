@@ -96,7 +96,7 @@ const BottombarMenu = () => {
         </li>
         <li className="box-border">
           <Link
-            href="/404"
+            href="/tools"
             className="flex items-center flex-row  hover:bg-zinc-400 hover:bg-opacity-80 rounded-md hover:cursor-pointer"
           >
             <div className="p-1">

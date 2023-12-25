@@ -49,6 +49,29 @@ export const getQuote = async () => {
   }
 };
 
+export const createQuote = async (token, quoteData) => {
+  try {
+    const response = await fetch(`${baseUrl}/shield/quote`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: token,
+      },
+      body: JSON.stringify({
+        quoteData,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error(error);
+  }
+};
+
 export const getCalendarById = async (id) => {
   try {
     const response = await fetch(`${baseUrl}/calendars/${id}`, {

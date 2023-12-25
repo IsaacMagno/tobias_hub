@@ -30,6 +30,7 @@ const page = () => {
 
   const calculateChallengePercentage = (challenge) => {
     var percentage = (challenge.questActual / challenge.questGoal) * 100;
+    if (percentage > 100) return 100 + "%";
     return percentage + "%";
   };
 
@@ -49,10 +50,7 @@ const page = () => {
 
         setMonthlyChallengeDays(diferencaDias);
 
-        if (
-          champion.monthlyChallenge.questActual ===
-          champion.monthlyChallenge.questGoal
-        ) {
+        if (champion.monthlyChallenge.completed) {
           setChallengeCompleted(true);
         }
       }
