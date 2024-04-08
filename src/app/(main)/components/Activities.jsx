@@ -164,7 +164,7 @@ const Activities = ({ activities }) => {
               Horas Estudando
             </p>
             {showRate ? (
-              <p className="text-sm lg:text-[15px] font-bold opacity-80">8:1</p>
+              <p className="text-sm lg:text-[15px] font-bold opacity-80">5:1</p>
             ) : (
               <p className="text-sm lg:text-[15px] font-bold opacity-80">
                 {activities.study}
@@ -178,7 +178,7 @@ const Activities = ({ activities }) => {
               Horas Meditando
             </p>
             {showRate ? (
-              <p className="text-sm lg:text-[15px] font-bold opacity-80">2:1</p>
+              <p className="text-sm lg:text-[15px] font-bold opacity-80">1:1</p>
             ) : (
               <p className="text-sm lg:text-[15px] font-bold opacity-80">
                 {activities.meditation}

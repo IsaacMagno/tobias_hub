@@ -79,7 +79,7 @@ const BottombarMenu = () => {
             </div>
           </Link>
         </li>
-        <li className="box-border">
+        {/* <li className="box-border">
           <Link
             href="/shop"
             className="flex items-center flex-row  hover:bg-zinc-400 hover:bg-opacity-80 rounded-md hover:cursor-pointer"
@@ -108,7 +108,7 @@ const BottombarMenu = () => {
               />
             </div>
           </Link>
-        </li>
+        </li> */}
       </ul>
     </div>
   );

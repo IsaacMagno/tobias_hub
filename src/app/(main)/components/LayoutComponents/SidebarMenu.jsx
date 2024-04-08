@@ -84,7 +84,7 @@ const SidebarMenu = () => {
             <span className="sidebar-button-text">Conquistas</span>
           </Link>
         </li>
-        <li>
+        {/* <li>
           <Link
             href="/shop"
             className="flex items-center flex-row px-1 py-2 hover:bg-stone-700 hover:bg-opacity-80 rounded-md hover:cursor-pointer"
@@ -115,7 +115,7 @@ const SidebarMenu = () => {
             </div>
             <span className="sidebar-button-text">Ferramentas</span>
           </Link>
-        </li>
+        </li> */}
       </ul>
     </aside>
   );

@@ -14,7 +14,7 @@ const RootLayout = ({ children }) => {
       <body>
         <GlobalProvider>
           <NextAuthSessionProvider>{children}</NextAuthSessionProvider>
-          <Toaster toastOptions={{ duration: 3000 }} />
+          <Toaster toastOptions={{ duration: 1500 }} />
         </GlobalProvider>
       </body>
     </html>

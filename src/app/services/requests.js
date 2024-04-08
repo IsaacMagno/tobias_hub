@@ -297,10 +297,12 @@ export const buyItem = async (buyData) => {
     });
 
     if (!response.ok) {
-      throw new Error("Network response was not ok");
+      console.error("Network response was not ok");
+      return false;
+    } else {
+      return true;
+      // return await response.json();
     }
-
-    return await response.json();
   } catch (error) {
     console.error(error);
   }
@@ -346,5 +348,42 @@ export const updateDaystreak = async (id, token) => {
     return await response.json();
   } catch (error) {
     console.error(error);
+  }
+};
+
+export const regenerateDailyQuest = async (updateData) => {
+  try {
+    const response = await fetch(`${baseUrl}/regenerate-quest`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        updateData,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+export const getAllChampionsMonthlyChallenge = async () => {
+  try {
+    const response = await fetch(`${baseUrl}/getallchampionsmonthlychallenge`, {
+      method: "GET",
+    });
+
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+
+    const championsMonthlyChallenge = await response.json();
+    return championsMonthlyChallenge;
+  } catch (error) {
+    console.error("There has been a problem with your fetch operation:", error);
   }
 };

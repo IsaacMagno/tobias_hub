@@ -2,7 +2,8 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
-import TobiasVintage from "/public/tobias_vintage_sm.webp";
+import TobiasVintage from "/public/tobiasLogin.webp";
+
 import { signIn } from "next-auth/react";
 import toast from "react-hot-toast";
 
@@ -34,7 +35,7 @@ const Login = () => {
     <div className="flex items-center justify-center min-h-screen bg-no-repeat bg-cover bg-center bg-fixed  bg-zinc-950 ">
       <div>
         <div className="max-w-sm w-full lg:max-w-full lg:flex p-5 lg:p-0">
-          <div className=" max-w-sm bg-white rounded-t-lg lg:rounded-l-lg lg:rounded-r-none">
+          <div className=" max-w-xs bg-white rounded-t-lg lg:rounded-l-lg lg:rounded-r-none">
             <Image alt="tobias" src={TobiasVintage} className="p-1 m-auto" />
           </div>
 

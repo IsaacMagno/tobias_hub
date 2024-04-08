@@ -1,5 +1,5 @@
 import React from "react";
-import image404 from "/public/404_2.webp";
+import image404 from "/public/404.webp";
 import Image from "next/image";
 import Link from "next/link";
 

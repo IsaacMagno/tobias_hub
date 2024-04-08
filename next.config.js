@@ -10,6 +10,10 @@ const nextConfig = {
         protocol: "https",
         hostname: "tobias-api.fly.dev",
       },
+      {
+        protocol: "https",
+        hostname: "tobiasdb.heliohost.us",
+      },
     ],
   },
   env: {
