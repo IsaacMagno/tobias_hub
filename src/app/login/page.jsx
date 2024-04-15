@@ -66,13 +66,13 @@ const Login = () => {
               >
                 Entrar
               </button>
-              <button
+              {/* <button
                 type="button"
                 className="mt-2 bg-neutral-700 hover:bg-neutral-900 text-white font-bold py-2 min-w-full rounded outline-none"
-                // onClick={() => navigate("/register")}
+                onClick={() => navigate("/register")}
               >
                 Criar conta
-              </button>
+              </button> */}
             </form>
             <div className="flex justify-center absolute bottom-2 inset-x-0">
               <p className="text-gray-500 text-xs">

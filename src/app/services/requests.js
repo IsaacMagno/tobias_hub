@@ -387,3 +387,20 @@ export const getAllChampionsMonthlyChallenge = async () => {
     console.error("There has been a problem with your fetch operation:", error);
   }
 };
+
+export const getStatsDetailsById = async (id) => {
+  try {
+    const response = await fetch(`${baseUrl}/statsDetails/${id}`, {
+      method: "GET",
+    });
+
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+
+    const championStatsDetails = await response.json();
+    return championStatsDetails;
+  } catch (error) {
+    console.error("There has been a problem with your fetch operation:", error);
+  }
+};
