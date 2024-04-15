@@ -46,8 +46,6 @@ const UserStats = ({
     championStatsDetails();
   }, []);
 
-  console.log(statsDetails);
-
   return (
     <section className="w-full h-full mt-4 pb-28 userstats-md userstats-lg bg-zinc-900">
       <div className="flex items-center justify-evenly gap-2">
