@@ -85,7 +85,7 @@ const UserStats = ({
               },
             }}
             placement="left"
-            className="flex justify-between border-b"
+            className="flex justify-between border-b cursor-default"
           >
             <span className="text-sm lg:text-[15px] font-medium flex gap-2">
               <p className="w-14 ">( STR )</p>
@@ -104,7 +104,7 @@ const UserStats = ({
                   Object.entries(statsDetails)
                     .filter(([key, value]) => key.startsWith("dex"))
                     .map(([key, value]) => (
-                      <p className="text-xs flexx" key={key}>
+                      <p className="text-xs" key={key}>
                         <span>
                           {translationMap[key]}: {value.toFixed(2)}
                         </span>
@@ -125,7 +125,7 @@ const UserStats = ({
               },
             }}
             placement="left"
-            className="flex justify-between border-b"
+            className="flex justify-between border-b cursor-default"
           >
             <span className="flex justify-between border-b">
               <span className="text-sm lg:text-[15px] font-medium flex gap-2">
@@ -146,7 +146,7 @@ const UserStats = ({
                   Object.entries(statsDetails)
                     .filter(([key, value]) => key.startsWith("int"))
                     .map(([key, value]) => (
-                      <p className="text-xs flexx" key={key}>
+                      <p className="text-xs" key={key}>
                         <span>
                           {translationMap[key]}: {value.toFixed(2)}
                         </span>
@@ -167,7 +167,7 @@ const UserStats = ({
               },
             }}
             placement="left"
-            className="flex justify-between border-b"
+            className="flex justify-between border-b cursor-default"
           >
             <span className="flex justify-between border-b">
               <span className="text-sm lg:text-[15px] font-medium flex gap-2">
@@ -188,7 +188,7 @@ const UserStats = ({
                   Object.entries(statsDetails)
                     .filter(([key, value]) => key.startsWith("con"))
                     .map(([key, value]) => (
-                      <p className="text-xs flexx" key={key}>
+                      <p className="text-xs" key={key}>
                         <span>
                           {translationMap[key]}: {value.toFixed(2)}
                         </span>
@@ -209,7 +209,7 @@ const UserStats = ({
               },
             }}
             placement="left"
-            className="flex justify-between border-b"
+            className="flex justify-between border-b cursor-default"
           >
             <span className="flex justify-between border-b ">
               <span className="text-sm lg:text-[15px] font-medium flex gap-2">
@@ -223,15 +223,37 @@ const UserStats = ({
           </Tooltip>
         </li>
         <li>
-          <span className="flex justify-between border-b">
-            <span className="text-sm lg:text-[15px] font-medium flex gap-2">
-              <p className="w-14">( WIS )</p>
-              <p>Sabedoria</p>
+          <Tooltip
+            title={
+              <span className="flex flex-col p-1 gap-0.5 font-bold min-w-[8vw] items-end">
+                Todos os stats / 15
+              </span>
+            }
+            slotProps={{
+              popper: {
+                modifiers: [
+                  {
+                    name: "offset",
+                    options: {
+                      offset: [0, -10],
+                    },
+                  },
+                ],
+              },
+            }}
+            placement="left"
+            className="flex justify-between border-b cursor-default"
+          >
+            <span className="flex justify-between border-b cursor-default">
+              <span className="text-sm lg:text-[15px] font-medium flex gap-2">
+                <p className="w-14">( WIS )</p>
+                <p>Sabedoria</p>
+              </span>
+              <p className="text-sm lg:text-[15px] font-bold opacity-80">
+                {statistics.wisdom}
+              </p>
             </span>
-            <p className="text-sm lg:text-[15px] font-bold opacity-80">
-              {statistics.wisdom}
-            </p>
-          </span>
+          </Tooltip>
         </li>
       </ul>
 

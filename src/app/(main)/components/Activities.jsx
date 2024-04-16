@@ -25,7 +25,7 @@ const Activities = ({ activities }) => {
           onClick={() => setShowRate(!showRate)}
         />
       </div>
-      <ul className="list-none space-y-2">
+      <ul className="list-none space-y-2 cursor-default">
         <li>
           <span className="flex justify-between border-b">
             <p className="text-sm lg:text-[15px] font-medium">Km Corridos</p>

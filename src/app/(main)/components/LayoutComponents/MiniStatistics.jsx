@@ -12,6 +12,7 @@ import { buyItem } from "../../../services/requests";
 import { useHandleUpdateChampionData } from "../../../hooks/useHandleUpdateChampionData";
 import { useSession } from "next-auth/react";
 import { useGlobalState } from "../../../services/state";
+import { Tooltip } from "@mui/material";
 
 const MiniStatistics = ({
   tobiasCoins,
@@ -83,55 +84,153 @@ const MiniStatistics = ({
   return (
     <div className="flex gap-2">
       <div>
-        <span className="flex  items-center cursor-default gap-[0.200rem] ">
-          <Image src={tobiasCoin} alt={"tobiasCoin image"} className="w-5" />
-          <p className="font-bold text-xs opacity-50 hover:opacity-80">
-            {tobiasCoins}
-          </p>
-        </span>
-      </div>
-
-      <div>
-        <span className="flex   items-center cursor-default gap-0 ">
-          <Image src={xpImage} alt={"xp image"} className="w-5" />
-          <p className="font-bold text-xs opacity-50 hover:opacity-80">{xp}</p>
-        </span>
-      </div>
-
-      <div>
-        <span className="flex  items-center cursor-default gap-[0.200rem] ">
-          <Image src={levelImage} alt={"level image"} className="w-5" />
-          <p className="font-bold text-xs opacity-50 hover:opacity-80">
-            {level}
-          </p>
-        </span>
-      </div>
-
-      <div>
-        <span className="flex  items-center cursor-default gap-[0.200rem] ">
-          <Image src={daystreakImage} alt={"daystreak image"} className="w-5" />
-          <p className="font-bold text-xs opacity-50 hover:opacity-80">
-            {daystreak}
-          </p>
-        </span>
-      </div>
-
-      <div>
-        <span
-          className="flex  items-center gap-[0.200rem] cursor-pointer"
-          onClick={() => handleFillDaystreakShield()}
+        <Tooltip
+          title={"TobiasCoins"}
+          slotProps={{
+            popper: {
+              modifiers: [
+                {
+                  name: "offset",
+                  options: {
+                    offset: [0, -10],
+                  },
+                },
+              ],
+            },
+          }}
+          placement="bottom"
+          className="flex justify-between cursor-default"
         >
-          <Image
-            src={
-              daystreakShield > 0 ? daystreakShieldImage : daystreakShieldBroken
-            }
-            alt={"daystreak image"}
-            className="w-5"
-          />
-          <p className="font-bold text-xs opacity-50 hover:opacity-80">
-            {daystreakShield}
-          </p>
-        </span>
+          <span className="flex  items-center cursor-default gap-[0.200rem] ">
+            <Image src={tobiasCoin} alt={"tobiasCoin image"} className="w-5" />
+            <p className="font-bold text-xs opacity-50 hover:opacity-80">
+              {tobiasCoins}
+            </p>
+          </span>
+        </Tooltip>
+      </div>
+
+      <div>
+        <Tooltip
+          title={"Pts. de Experiência"}
+          slotProps={{
+            popper: {
+              modifiers: [
+                {
+                  name: "offset",
+                  options: {
+                    offset: [0, -10],
+                  },
+                },
+              ],
+            },
+          }}
+          placement="bottom"
+          className="flex justify-between cursor-default"
+        >
+          <span className="flex   items-center cursor-default gap-0 ">
+            <Image src={xpImage} alt={"xp image"} className="w-5" />
+            <p className="font-bold text-xs opacity-50 hover:opacity-80">
+              {xp}
+            </p>
+          </span>
+        </Tooltip>
+      </div>
+
+      <div>
+        <Tooltip
+          title={"Level"}
+          slotProps={{
+            popper: {
+              modifiers: [
+                {
+                  name: "offset",
+                  options: {
+                    offset: [0, -10],
+                  },
+                },
+              ],
+            },
+          }}
+          placement="bottom"
+          className="flex justify-between cursor-default"
+        >
+          <span className="flex  items-center cursor-default gap-[0.200rem] ">
+            <Image src={levelImage} alt={"level image"} className="w-5" />
+            <p className="font-bold text-xs opacity-50 hover:opacity-80">
+              {level}
+            </p>
+          </span>
+        </Tooltip>
+      </div>
+
+      <div>
+        <Tooltip
+          title={"Sequência atual"}
+          slotProps={{
+            popper: {
+              modifiers: [
+                {
+                  name: "offset",
+                  options: {
+                    offset: [0, -10],
+                  },
+                },
+              ],
+            },
+          }}
+          placement="bottom"
+          className="flex justify-between cursor-default"
+        >
+          <span className="flex  items-center cursor-default gap-[0.200rem] ">
+            <Image
+              src={daystreakImage}
+              alt={"daystreak image"}
+              className="w-5"
+            />
+            <p className="font-bold text-xs opacity-50 hover:opacity-80">
+              {daystreak}
+            </p>
+          </span>
+        </Tooltip>
+      </div>
+
+      <div>
+        <Tooltip
+          title={"Daystreak Shield"}
+          slotProps={{
+            popper: {
+              modifiers: [
+                {
+                  name: "offset",
+                  options: {
+                    offset: [0, -10],
+                  },
+                },
+              ],
+            },
+          }}
+          placement="bottom"
+          className="flex justify-between cursor-default"
+        >
+          <span
+            className="flex  items-center gap-[0.200rem] cursor-pointer"
+            onClick={() => handleFillDaystreakShield()}
+          >
+            <Image
+              src={
+                daystreakShield > 0
+                  ? daystreakShieldImage
+                  : daystreakShieldBroken
+              }
+              alt={"daystreak image"}
+              className="w-5"
+            />
+            <p className="font-bold text-xs opacity-50 hover:opacity-80">
+              {daystreakShield}
+            </p>
+          </span>
+        </Tooltip>
       </div>
     </div>
   );

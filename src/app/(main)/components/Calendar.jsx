@@ -17,11 +17,17 @@ const Calendar = ({ show, token, championId }) => {
   const [selectedColor, setSelectedColor] = useState("green");
   const [events, setEvents] = useState();
   const [calendar, setCalendar] = useState();
+  const [greenDay, setGreenDay] = useState(0);
+  const [yellowDay, setYellowDay] = useState(0);
+  const [redDay, setRedDay] = useState(0);
 
   useEffect(() => {
     const getCalendar = async () => {
       const { calendars } = await getCalendarById(championId);
       setCalendar(calendars);
+      setGreenDay(calendars.green_day);
+      setYellowDay(calendars.yellow_day);
+      setRedDay(calendars.red_day);
 
       const filteredEvents = calendars.events.map((ev) => {
         const eventObj = {
@@ -39,6 +45,8 @@ const Calendar = ({ show, token, championId }) => {
     getCalendar();
   }, []);
 
+  useEffect(() => {}, [greenDay, yellowDay, redDay]);
+
   const handleDateClick = async (dateClickInfo) => {
     const { id } = calendar;
 
@@ -51,12 +59,40 @@ const Calendar = ({ show, token, championId }) => {
     );
 
     if (eventExists.length) {
+      switch (eventExists[0].backgroundColor) {
+        case "green":
+          setGreenDay(greenDay - 1);
+          break;
+
+        case "yellow":
+          setYellowDay(yellowDay - 1);
+          break;
+
+        case "red":
+          setRedDay(redDay - 1);
+          break;
+      }
+
       eventExists[0].remove();
       var date = {
         date: dateClickInfo.dateStr,
       };
       await removeEvent(token, date, id);
     } else {
+      switch (color) {
+        case "green":
+          setGreenDay(greenDay + 1);
+          break;
+
+        case "yellow":
+          setYellowDay(yellowDay + 1);
+          break;
+
+        case "red":
+          setRedDay(redDay + 1);
+          break;
+      }
+
       var newEvent = {
         title: "",
         date: dateClickInfo.dateStr,
@@ -110,6 +146,7 @@ const Calendar = ({ show, token, championId }) => {
           }}
         />
       </div>
+
       <div className="my-1 ">
         {show && (
           <FullCalendar
@@ -120,6 +157,20 @@ const Calendar = ({ show, token, championId }) => {
             events={events}
           />
         )}
+      </div>
+      <div className="mx-auto flex gap-2">
+        <span className="flex text-xs items-center">
+          <button className="stats-calendar cursor-default bg-green-500" />
+          <p>{greenDay}</p>
+        </span>
+        <span className="flex text-xs items-center">
+          <button className="stats-calendar cursor-default bg-yellow-500" />
+          <p>{yellowDay}</p>{" "}
+        </span>
+        <span className="flex text-xs items-center">
+          <button className="stats-calendar cursor-default bg-red-500" />
+          <p>{redDay}</p>{" "}
+        </span>
       </div>
     </div>
   );
