@@ -63,8 +63,6 @@ const Home = () => {
     if (session) {
       getChampionData();
     }
-
-    console.log(session);
   }, [session]);
 
   if (isLoading) {

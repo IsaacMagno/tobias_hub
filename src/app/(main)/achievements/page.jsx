@@ -123,6 +123,7 @@ const page = () => {
                 sumary={sumary}
                 setSumaryActivitie={setSumaryActivitie}
                 setShowAchievements={setShowAchievements}
+                sumaryActivitie={sumaryActivitie}
               />
             ) : null}
           </div>
@@ -147,7 +148,7 @@ const page = () => {
           </li>
           {achievementsCategory.map((category, index) => (
             <li
-              className="p-3 rounded-lg cursor-pointer bg-zinc-700 hover:bg-zinc-800 flex items-center justify-around  font-bold"
+              className="p-3 rounded-lg cursor-pointer bg-zinc-700 hover:bg-zinc-800 flex items-center justify-around font-bold"
               key={index}
               onClick={() => {
                 setSumary(category.name);

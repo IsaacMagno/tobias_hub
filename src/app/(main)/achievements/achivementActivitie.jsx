@@ -69,13 +69,16 @@ const achivementActivitie = ({
   sumary,
   setSumaryActivitie,
   setShowAchievements,
+  sumaryActivitie,
 }) => {
   return (
     <div>
       <ul className="bg-zinc-950 flex justify-between text-center p-2 rounded-lg font-extrabold ">
         {activitieSummary[sumary].map((activitie) => (
           <li
-            className="flex-grow py-2 lg:py-4 text-sm text-white/50 hover:text-white hover:bg-zinc-900 cursor-pointer rounded-lg "
+            className={`flex-grow py-2 lg:py-4 text-sm text-white/50 hover:text-white hover:bg-zinc-900 cursor-pointer rounded-lg ${
+              sumaryActivitie === activitie.set ? "bg-zinc-900" : null
+            }`}
             onClick={() => {
               setShowAchievements(true);
               setSumaryActivitie(activitie.set);
