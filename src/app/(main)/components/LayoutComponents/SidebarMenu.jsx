@@ -84,6 +84,22 @@ const SidebarMenu = () => {
             <span className="sidebar-button-text">Conquistas</span>
           </Link>
         </li>
+        <li>
+          <Link
+            href="/analitycs"
+            className="flex items-center flex-row px-1 py-2 hover:bg-stone-700 hover:bg-opacity-80 rounded-md hover:cursor-pointer"
+          >
+            <div className="p-1">
+              <Image
+                alt={"alt"}
+                src={"/sidebarIcons/analitycs.svg"}
+                width={40}
+                height={40}
+              />
+            </div>
+            <span className="sidebar-button-text">Análises</span>
+          </Link>
+        </li>
         {/* <li>
           <Link
             href="/shop"

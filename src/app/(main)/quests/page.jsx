@@ -112,8 +112,6 @@ const page = () => {
     // Determina se a atualização é gratuita
     const isFreeUpdate = lastUpdateDate.getTime() !== today.getTime();
 
-    console.log(championsProgressList);
-
     toast((t) => (
       <div className="flex flex-col gap-4">
         <p className="flex flex-col items-center text-lg ">
