@@ -159,3 +159,9 @@ body {
 .stats-calendar {
   @apply w-3 h-3 rounded-full mx-1 shadow-md shadow-black/50;
 }
+
+/* ANALITYCS */
+
+.btn-select-analitycs {
+  @apply p-5 bg-neutral-800 rounded-lg hover:bg-neutral-700 font-bold;
+}

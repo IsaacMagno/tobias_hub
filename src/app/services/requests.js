@@ -421,3 +421,20 @@ export const getEventCountByDate = async (id) => {
     console.error("There has been a problem with your fetch operation:", error);
   }
 };
+
+export const getDailyActivitieById = async (id) => {
+  try {
+    const response = await fetch(`${baseUrl}/dailyActivities/${id}`, {
+      method: "GET",
+    });
+
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+
+    const dailyActivities = await response.json();
+    return dailyActivities;
+  } catch (error) {
+    console.error("There has been a problem with your fetch operation:", error);
+  }
+};
