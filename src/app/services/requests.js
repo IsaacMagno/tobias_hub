@@ -2,6 +2,7 @@ export { imagesBaseUrl } from "./constants";
 
 export {
   doLogin,
+  actionRegisterChampion,
   getChampionDataById,
   updateChampionBio,
   getChampionsImages,
@@ -31,4 +32,6 @@ export {
   fetchPublicChampions,
   fetchSessionAnalytics,
   actionSetChampionPins,
+  fetchMyInvite,
+  actionGenerateMyInvite,
 } from "@/app/actions/tobias";

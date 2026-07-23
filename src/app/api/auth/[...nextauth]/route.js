@@ -12,7 +12,7 @@ const nextAuthOptions = {
       },
       authorize: async (credentials) => {
         const result = await loginChampion(
-          credentials.username,
+          String(credentials.username || "").trim().toLowerCase(),
           credentials.password
         );
 

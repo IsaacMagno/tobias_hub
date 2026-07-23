@@ -43,3 +43,6 @@ coverage/
 **/con.webp
 **/con.jpg
 **/con.png
+
+.vercel
+.env*

@@ -1,6 +1,6 @@
 "use server";
 
-import { loginChampion } from "@/lib/services/auth";
+import { loginChampion, registerChampion } from "@/lib/services/auth";
 import {
   getChampionByIdFull,
   updateChampionBiography,
@@ -13,6 +13,7 @@ import {
 import { getSessionAnalytics } from "@/lib/services/analytics";
 import { getAllFiles } from "@/lib/services/files";
 import { requireChampionSession } from "@/lib/auth/session";
+import { generateMyInvite, getMyInvite } from "@/lib/services/invites";
 import {
   getContinueState,
   setActiveMission,
@@ -37,6 +38,18 @@ export async function doLogin(username, password) {
   const result = await loginChampion(username, password);
   if (!result) return { isValid: false };
   return { isValid: true, champion: result.champion, token: result.token };
+}
+
+export async function actionRegisterChampion(payload) {
+  try {
+    const result = await registerChampion(payload || {});
+    return { ok: true, ...result };
+  } catch (err) {
+    return {
+      ok: false,
+      message: err?.message || "Não foi possível criar a conta",
+    };
+  }
 }
 
 export async function getChampionDataById(id) {
@@ -228,4 +241,22 @@ export async function fetchSessionAnalytics({
 export async function actionSetChampionPins(achievementIds) {
   const session = await requireChampionSession();
   return setChampionPins(session.user.champion_id, achievementIds);
+}
+
+export async function fetchMyInvite() {
+  const session = await requireChampionSession();
+  return getMyInvite(session.user.champion_id);
+}
+
+export async function actionGenerateMyInvite() {
+  try {
+    const session = await requireChampionSession();
+    const invite = await generateMyInvite(session.user.champion_id);
+    return { ok: true, invite };
+  } catch (err) {
+    return {
+      ok: false,
+      message: err?.message || "Não foi possível gerar o convite",
+    };
+  }
 }

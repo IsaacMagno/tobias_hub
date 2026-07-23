@@ -114,7 +114,7 @@ export default function TimerPanel() {
     <>
       <BusyRail active={Boolean(rail)} label={rail} />
       <div className="mx-auto max-w-lg space-y-6 pb-28 lg:pb-10">
-        <header className="space-y-2">
+        <header data-tour="tour-timer-header" className="space-y-2">
           <p className="text-xs uppercase tracking-[0.22em] text-copper">
             Timer
           </p>
@@ -125,7 +125,7 @@ export default function TimerPanel() {
           </p>
         </header>
 
-        <section className="panel space-y-4 p-5">
+        <section data-tour="tour-timer-controls" className="panel space-y-4 p-5">
           <div className="flex items-baseline justify-between gap-2">
             <p className="text-xs uppercase tracking-[0.18em] text-ash-400">
               {phase === "break"
@@ -186,7 +186,7 @@ export default function TimerPanel() {
           </p>
         </section>
 
-        <section className="panel space-y-4 p-5">
+        <section data-tour="tour-timer-settings" className="panel space-y-4 p-5">
           <h2 className="text-xs uppercase tracking-[0.18em] text-ash-400">
             Seus tempos
           </h2>

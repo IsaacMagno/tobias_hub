@@ -293,7 +293,7 @@ export default function CampaignEditorForm({
         onSubmit={onSubmit}
         className="mx-auto max-w-3xl space-y-6 pb-24 lg:pb-8"
       >
-        <header className="space-y-2">
+        <header data-tour="tour-editor-header" className="space-y-2">
           <p className="text-xs uppercase tracking-[0.22em] text-copper">
             Editor
           </p>
@@ -309,7 +309,10 @@ export default function CampaignEditorForm({
         </header>
 
         {mode === "edit" && form.chapters?.length > 0 && (
-          <section className="panel space-y-4 p-5">
+          <section
+            data-tour="tour-editor-structure"
+            className="panel space-y-4 p-5"
+          >
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-xs uppercase tracking-[0.18em] text-ash-400">
                 Capítulos e missões
@@ -426,7 +429,7 @@ export default function CampaignEditorForm({
           </section>
         )}
 
-        <section className="panel space-y-4 p-5">
+        <section data-tour="tour-editor-meta" className="panel space-y-4 p-5">
           <h2 className="text-xs uppercase tracking-[0.18em] text-ash-400">
             Campanha
           </h2>
@@ -493,7 +496,14 @@ export default function CampaignEditorForm({
           </fieldset>
         </section>
 
-        <section className="panel space-y-4 p-5">
+        <section
+          data-tour={
+            mode === "edit" && !(form.chapters?.length > 0)
+              ? "tour-editor-structure"
+              : undefined
+          }
+          className="panel space-y-4 p-5"
+        >
           <h2 className="text-xs uppercase tracking-[0.18em] text-ash-400">
             Missão
           </h2>
@@ -562,7 +572,7 @@ export default function CampaignEditorForm({
           </div>
         </section>
 
-        <section className="panel space-y-4 p-5">
+        <section data-tour="tour-editor-steps" className="panel space-y-4 p-5">
           <div className="flex items-center justify-between gap-2">
             <h2 className="text-xs uppercase tracking-[0.18em] text-ash-400">
               Passos
@@ -652,37 +662,39 @@ export default function CampaignEditorForm({
           </ul>
         </section>
 
-        {mode === "create" && (
-          <label className="flex items-center gap-2 text-sm text-ash-300">
-            <input
-              type="checkbox"
-              checked={focusAfterCreate}
-              onChange={(e) => setFocusAfterCreate(e.target.checked)}
-            />
-            Continuar nesta frente depois de criar
-          </label>
-        )}
+        <div data-tour="tour-editor-save" className="space-y-3">
+          {mode === "create" && (
+            <label className="flex items-center gap-2 text-sm text-ash-300">
+              <input
+                type="checkbox"
+                checked={focusAfterCreate}
+                onChange={(e) => setFocusAfterCreate(e.target.checked)}
+              />
+              Continuar nesta frente depois de criar
+            </label>
+          )}
 
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="submit"
-            className="btn-primary"
-            disabled={!canSubmit || busy}
-          >
-            {busy ? (
-              <>
-                <Spinner />
-                {mode === "create" ? "Criando…" : "Salvando…"}
-              </>
-            ) : mode === "create" ? (
-              "Criar frente"
-            ) : (
-              "Salvar"
-            )}
-          </button>
-          <Link href="/campaigns" className="btn-ghost">
-            Cancelar
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="submit"
+              className="btn-primary"
+              disabled={!canSubmit || busy}
+            >
+              {busy ? (
+                <>
+                  <Spinner />
+                  {mode === "create" ? "Criando…" : "Salvando…"}
+                </>
+              ) : mode === "create" ? (
+                "Criar frente"
+              ) : (
+                "Salvar"
+              )}
+            </button>
+            <Link href="/campaigns" className="btn-ghost">
+              Cancelar
+            </Link>
+          </div>
         </div>
       </form>
     </>

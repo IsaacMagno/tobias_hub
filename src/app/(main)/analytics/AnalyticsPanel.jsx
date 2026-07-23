@@ -53,7 +53,7 @@ export default function AnalyticsPanel() {
   return (
     <div className="mx-auto max-w-2xl space-y-6 pb-28 lg:pb-10">
       <BusyRail active={Boolean(rail)} label={rail} />
-      <header className="space-y-2">
+      <header data-tour="tour-analytics-header" className="space-y-2">
         <p className="text-xs uppercase tracking-[0.22em] text-copper">
           Identidade
         </p>
@@ -63,7 +63,7 @@ export default function AnalyticsPanel() {
         </p>
       </header>
 
-      <section className="panel space-y-3 p-5">
+      <section data-tour="tour-analytics-filter" className="panel space-y-3 p-5">
         <label className="block space-y-1.5">
           <span className="text-xs text-ash-400">Filtrar por campanha</span>
           <select
@@ -97,7 +97,7 @@ export default function AnalyticsPanel() {
         </div>
       ) : (
         <>
-          <section className="panel space-y-3 p-5">
+          <section data-tour="tour-analytics-chart" className="panel space-y-3 p-5">
             <h2 className="text-xs uppercase tracking-[0.18em] text-ash-400">
               Minutos por dia
             </h2>

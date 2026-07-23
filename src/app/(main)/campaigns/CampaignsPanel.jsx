@@ -147,7 +147,7 @@ export default function CampaignsPanel() {
     <>
       <BusyRail active={Boolean(railLabel)} label={railLabel} />
       <div className="mx-auto max-w-2xl space-y-6 pb-24 lg:pb-8">
-        <header className="space-y-2">
+        <header data-tour="tour-campaigns-header" className="space-y-2">
           <p className="text-xs uppercase tracking-[0.22em] text-copper">
             Frentes
           </p>
@@ -159,14 +159,18 @@ export default function CampaignsPanel() {
               </p>
             </div>
             {!isArchivedView && (
-              <Link href="/campaigns/new" className="btn-primary shrink-0">
+              <Link
+                href="/campaigns/new"
+                className="btn-primary shrink-0"
+                data-tour="tour-campaigns-new"
+              >
                 Nova frente
               </Link>
             )}
           </div>
         </header>
 
-        <div className="flex flex-wrap gap-2">
+        <div data-tour="tour-campaigns-filters" className="flex flex-wrap gap-2">
           {[
             { id: "all", label: "Todas" },
             { id: "today", label: "Hoje" },
@@ -208,7 +212,7 @@ export default function CampaignsPanel() {
           </div>
         ) : (
           <ul className="space-y-3">
-            {visible.map((c) => (
+            {visible.map((c, index) => (
               <li key={c.id} className="panel space-y-3 p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1">
@@ -267,6 +271,9 @@ export default function CampaignsPanel() {
                       <Link
                         href={`/campaigns/${c.id}/edit`}
                         className="btn-ghost"
+                        {...(index === 0
+                          ? { "data-tour": "tour-campaigns-edit" }
+                          : {})}
                       >
                         Ver / editar
                       </Link>
@@ -278,6 +285,9 @@ export default function CampaignsPanel() {
                         className="btn-primary"
                         disabled={Boolean(busyId) || c.isFocused}
                         onClick={() => focus(c.id)}
+                        {...(index === 0
+                          ? { "data-tour": "tour-campaigns-focus" }
+                          : {})}
                       >
                         {busyId === c.id ? (
                           <>
@@ -293,6 +303,9 @@ export default function CampaignsPanel() {
                       <Link
                         href={`/campaigns/${c.id}/edit`}
                         className="btn-ghost"
+                        {...(index === 0
+                          ? { "data-tour": "tour-campaigns-edit" }
+                          : {})}
                       >
                         Editar
                       </Link>
@@ -307,6 +320,9 @@ export default function CampaignsPanel() {
                               : { id: c.id, title: c.title }
                           )
                         }
+                        {...(index === 0
+                          ? { "data-tour": "tour-campaigns-archive" }
+                          : {})}
                       >
                         Arquivar
                       </button>

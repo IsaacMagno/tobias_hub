@@ -17,6 +17,12 @@ import {
   actionFocusCampaign,
   actionResumeMission,
 } from "../../services/requests";
+import { useTour } from "@/components/onboarding/TourProvider";
+import {
+  emitTourProgress,
+  isTourDone,
+  markTourDone,
+} from "@/lib/onboarding/tours";
 
 function StepRow({ step, open, onToggle }) {
   const isCurrent = step.status === "current";
@@ -99,6 +105,7 @@ function ActionButton({
 }
 
 export default function ContinuePanel() {
+  const tour = useTour();
   const [state, setState] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -120,6 +127,24 @@ export default function ContinuePanel() {
       sessionIdRef.current = null;
     }
   }, []);
+
+  useEffect(() => {
+    if (!tour?.setMissionHint) return;
+    if (loading) {
+      tour.setMissionHint(null);
+      return;
+    }
+    const hasMission = Boolean(state && !state.empty && state.mission);
+    tour.setMissionHint(hasMission);
+    if (
+      hasMission &&
+      tour.championId &&
+      !isTourDone(tour.championId, "continue")
+    ) {
+      markTourDone(tour.championId, "continue");
+      emitTourProgress();
+    }
+  }, [tour, loading, state]);
 
   useEffect(() => {
     let cancelled = false;
@@ -272,24 +297,39 @@ export default function ContinuePanel() {
       <>
         <BusyRail active={rail.active} label={rail.label} />
         <div className="mx-auto max-w-lg space-y-6 py-10">
-          <h1 className="font-display text-3xl text-ash-200">Continuar</h1>
-          <p className="leading-relaxed text-ash-400">
-            {state?.message ||
-              "Ainda não há campanha. Prepare o demo (Tobias + academia) para testar o motor."}
-          </p>
-          {hasCampaigns ? (
-            <Link href="/campaigns" className="btn-primary inline-flex">
-              Abrir Campanhas
-            </Link>
-          ) : (
-            <ActionButton
-              busy={busy}
-              busyText="Preparando…"
-              onClick={handleSeed}
-            >
-              Preparar campanhas demo
-            </ActionButton>
-          )}
+          <header data-tour="tour-continue-header" className="space-y-2">
+            <p className="text-xs uppercase tracking-[0.22em] text-copper">
+              Continuar
+            </p>
+            <h1 className="font-display text-3xl text-ash-200">Continuar</h1>
+          </header>
+          <div data-tour="tour-continue-empty" className="space-y-4">
+            <p className="leading-relaxed text-ash-400">
+              {state?.message ||
+                "Ainda não há campanha em foco. Crie a sua primeira frente — ou use o demo para testar o motor."}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {hasCampaigns ? (
+                <Link href="/campaigns" className="btn-primary inline-flex">
+                  Abrir Campanhas
+                </Link>
+              ) : (
+                <>
+                  <Link href="/campaigns/new" className="btn-primary inline-flex">
+                    Criar primeira campanha
+                  </Link>
+                  <ActionButton
+                    variant="ghost"
+                    busy={busy}
+                    busyText="Preparando…"
+                    onClick={handleSeed}
+                  >
+                    Preparar campanhas demo
+                  </ActionButton>
+                </>
+              )}
+            </div>
+          </div>
         </div>
       </>
     );
@@ -315,7 +355,7 @@ export default function ContinuePanel() {
           busy ? "opacity-80" : "opacity-100"
         }`}
       >
-        <header className="space-y-2">
+        <header data-tour="tour-continue-header" className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-xs uppercase tracking-[0.22em] text-copper">
               Continuar
@@ -408,7 +448,7 @@ export default function ContinuePanel() {
         )}
 
         <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-          <section className="panel space-y-4 p-5">
+          <section data-tour="tour-continue-steps" className="panel space-y-4 p-5">
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-xs uppercase tracking-[0.18em] text-ash-400">
                 Passos
@@ -496,29 +536,32 @@ export default function ContinuePanel() {
             )}
           </section>
 
-          <PomodoroTimer
-            key={`${current?.id ?? "none"}-${timerEpoch}`}
-            resetKey={`${current?.id ?? "none"}-${timerEpoch}`}
-            plannedMinutes={planned}
-            label={current?.surface || state.mission.title}
-            stepId={current?.id}
-            disabled={isPaused || !current}
-            onStart={async () => {
-              await unlockAudio();
-              if (!current) return;
-              const session = await actionStartSession(current.id, planned);
-              sessionIdRef.current = session.id;
-              elapsedRef.current = 0;
-            }}
-            onStop={(elapsed, status) => {
-              elapsedRef.current = elapsed;
-              if (sessionIdRef.current && status === "aborted") {
-                const sid = sessionIdRef.current;
-                sessionIdRef.current = null;
-                actionFinishSession(sid, elapsed, "aborted").catch(() => {});
-              }
-            }}
-          />        </div>
+          <div data-tour="tour-continue-timer">
+            <PomodoroTimer
+              key={`${current?.id ?? "none"}-${timerEpoch}`}
+              resetKey={`${current?.id ?? "none"}-${timerEpoch}`}
+              plannedMinutes={planned}
+              label={current?.surface || state.mission.title}
+              stepId={current?.id}
+              disabled={isPaused || !current}
+              onStart={async () => {
+                await unlockAudio();
+                if (!current) return;
+                const session = await actionStartSession(current.id, planned);
+                sessionIdRef.current = session.id;
+                elapsedRef.current = 0;
+              }}
+              onStop={(elapsed, status) => {
+                elapsedRef.current = elapsed;
+                if (sessionIdRef.current && status === "aborted") {
+                  const sid = sessionIdRef.current;
+                  sessionIdRef.current = null;
+                  actionFinishSession(sid, elapsed, "aborted").catch(() => {});
+                }
+              }}
+            />
+          </div>
+        </div>
       </div>
     </>
   );

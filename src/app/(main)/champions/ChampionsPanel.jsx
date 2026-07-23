@@ -25,7 +25,7 @@ export default function ChampionsPanel() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 pb-28 lg:pb-10">
-      <header className="space-y-2">
+      <header data-tour="tour-champions-header" className="space-y-2">
         <p className="text-xs uppercase tracking-[0.22em] text-copper">
           Mundo
         </p>
@@ -39,26 +39,30 @@ export default function ChampionsPanel() {
         <div className="flex justify-center py-16">
           <Spinner />
         </div>
-      ) : items.length === 0 ? (
-        <p className="text-sm text-ash-500">
-          Ninguém público ainda. Torne seu perfil público em Perfil.
-        </p>
       ) : (
-        <ul className="space-y-3">
-          {items.map((c) => (
-            <li key={c.id}>
-              <Link
-                href={`/champions/${c.id}`}
-                className="panel block p-4 transition hover:border-copper/30"
-              >
-                <p className="font-display text-lg text-ash-200">{c.name}</p>
-                <p className="text-sm text-copper/80">
-                  {c.title || "Sem título"} · Nv. {c.level}
-                </p>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <div data-tour="tour-champions-list">
+          {items.length === 0 ? (
+            <p className="text-sm text-ash-500">
+              Ninguém público ainda. Torne seu perfil público em Perfil.
+            </p>
+          ) : (
+            <ul className="space-y-3">
+              {items.map((c) => (
+                <li key={c.id}>
+                  <Link
+                    href={`/champions/${c.id}`}
+                    className="panel block p-4 transition hover:border-copper/30"
+                  >
+                    <p className="font-display text-lg text-ash-200">{c.name}</p>
+                    <p className="text-sm text-copper/80">
+                      {c.title || "Sem título"} · Nv. {c.level}
+                    </p>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
     </div>
   );
