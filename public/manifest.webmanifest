@@ -1,0 +1,33 @@
+{
+  "id": "/",
+  "name": "Tobias",
+  "short_name": "Tobias",
+  "description": "Guia de progressão pessoal — campanhas, próximo passo e pomodoro",
+  "start_url": "/login",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0a0908",
+  "theme_color": "#0a0908",
+  "orientation": "any",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

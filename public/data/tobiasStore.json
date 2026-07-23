@@ -1,0 +1,41 @@
+[
+  {
+    "name": "Daystreak Shield",
+    "category": "Poção",
+    "price": 5000.0,
+    "description": "Poção que aumenta o número de proteções de daystreak",
+    "image": "/userstreak/daystreakShield.svg",
+    "characteristics": {
+      "dexterity": 0,
+      "strength": 0,
+      "intelligence": 0,
+      "constitution": 0,
+      "wisdom": 0,
+      "ap": 0,
+      "pm": 0,
+      "range": 0
+    },
+    "requirements": {
+      "dexterity": 0,
+      "strength": 0,
+      "intelligence": 0,
+      "constitution": 0,
+      "wisdom": 0,
+      "ap": 0,
+      "pm": 0,
+      "range": 0,
+      "kmRun": 0,
+      "jumpRope": 0,
+      "kmBike": 0,
+      "upperLimb": 0,
+      "absLimb": 0,
+      "lowerLimb": 0,
+      "meals": 0,
+      "drinks": 0,
+      "sleep": 0,
+      "study": 0,
+      "meditation": 0,
+      "reading": 0
+    }
+  }
+]
