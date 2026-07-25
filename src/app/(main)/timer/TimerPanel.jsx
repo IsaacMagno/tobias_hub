@@ -254,9 +254,9 @@ export default function TimerPanel() {
             Despertador / lembrete
           </h2>
           <p className="text-sm text-ash-400">
-            Com notificações liberadas, o Tobias tenta tocar o alarme mesmo com a
-            tela bloqueada. Ao desbloquear depois do alarme, o app recarrega sozinho
-            para não travar (limitação do PWA no Android).
+            Com a tela bloqueada o Android costuma impedir o som do PWA. O Tobias
+            tenta avisar mesmo assim; ao desbloquear, o alarme toca de novo e a
+            tela recarrega sozinha para não travar.
           </p>
           <button type="button" className="btn-ghost" onClick={enableNotifications}>
             {notifState === "granted"

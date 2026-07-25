@@ -28,8 +28,10 @@ import {
 import {
   savePostAlarmSnapshot,
   loadPostAlarmSnapshot,
+  peekPostAlarmSnapshot,
   peekReloadFlag,
   consumeReloadFlag,
+  markSnapshotAlarmPlayed,
   clearPostAlarmRecovery,
 } from "@/lib/pomodoro/recovery";
 
@@ -89,6 +91,12 @@ export function PomodoroProvider({ children }) {
       if (snap.pendingLog) setPendingLog(snap.pendingLog);
       setRunning(false);
       setEndsAt(null);
+      // Se o alarme não tocou no desbloqueio, toca agora (página visível).
+      if (snap.shouldRing && snap.alarm) {
+        window.setTimeout(() => {
+          void notifyAlarm(snap.alarm).catch(() => {});
+        }, 350);
+      }
     }
     setHydrated(true);
   }, []);
@@ -120,9 +128,6 @@ export function PomodoroProvider({ children }) {
       clearTick();
       stopTimerKeepAlive();
       void clearRunningTimerNotification();
-      // Não cancela o SW alarm se ainda não disparou — ele é backup sonoro.
-      // Só cancela se vamos tocar pela página agora.
-      void cancelServiceWorkerAlarm();
 
       const was = phaseRef.current;
       const wasSource = sourceRef.current;
@@ -167,8 +172,8 @@ export function PomodoroProvider({ children }) {
         }
       }
 
-      // Com tela bloqueada: toca o alarme agora e marca reload ao desbloquear
-      // (era o que funcionava antes; o crash vinha do React ao voltar).
+      // Tela bloqueada: áudio quase sempre falha. Salva estado + alarme para
+      // tocar ao desbloquear; deixa o SW tentar notificar enquanto isso.
       if (hidden) {
         savePostAlarmSnapshot({
           phase: nextPhase,
@@ -178,16 +183,18 @@ export function PomodoroProvider({ children }) {
           plannedSeconds: nextPlanned,
           remaining: nextRemaining,
           pendingLog: nextPending,
+          alarm: alarmPayload,
+          shouldRing: true,
         });
-        // Dispara imediatamente — sem setTimeout (morre com a página congelada).
+        // Tenta agora (pode falhar) — NÃO cancela o SW (backup de notificação).
         void notifyAlarm(alarmPayload).catch(() => {});
-        // Estado mínimo; o reload vai hidratar o snapshot limpo.
         setRunning(false);
         setEndsAt(null);
         setRemaining(0);
         return;
       }
 
+      void cancelServiceWorkerAlarm();
       void notifyAlarm(alarmPayload).catch(() => {});
       clearPostAlarmRecovery();
 
@@ -269,10 +276,14 @@ export function PomodoroProvider({ children }) {
     };
   }, [running, endsAt]);
 
-  // Ao desbloquear depois do alarme em background → reload limpo (sua ideia).
+  // Ao desbloquear: toca o alarme (agora a página está visível) e depois recarrega.
   useEffect(() => {
+    let reloadTimer = null;
+    let recovering = false;
+
     const recover = () => {
       if (document.visibilityState !== "visible") return;
+
       if (!peekReloadFlag()) {
         if (running) {
           syncRemaining();
@@ -280,19 +291,38 @@ export function PomodoroProvider({ children }) {
         }
         return;
       }
-      consumeReloadFlag();
-      // Recarrega antes do React entrar no estado quebrado.
-      window.location.reload();
+      if (recovering) return;
+      recovering = true;
+
+      const snap = peekPostAlarmSnapshot();
+      const alarm = snap?.alarm;
+
+      const doReload = () => {
+        markSnapshotAlarmPlayed();
+        consumeReloadFlag();
+        window.location.reload();
+      };
+
+      // Prioridade: ouvir o alarme no desbloqueio (áudio só funciona visível).
+      if (alarm) {
+        void notifyAlarm(alarm)
+          .catch(() => {})
+          .finally(() => {
+            reloadTimer = window.setTimeout(doReload, 3200);
+          });
+      } else {
+        reloadTimer = window.setTimeout(doReload, 200);
+      }
     };
 
     document.addEventListener("visibilitychange", recover);
     window.addEventListener("pageshow", recover);
-    // Se já abriu visível com a flag (caso raro), recarrega.
     recover();
 
     return () => {
       document.removeEventListener("visibilitychange", recover);
       window.removeEventListener("pageshow", recover);
+      if (reloadTimer) window.clearTimeout(reloadTimer);
     };
   }, [running, syncRemaining]);
 
