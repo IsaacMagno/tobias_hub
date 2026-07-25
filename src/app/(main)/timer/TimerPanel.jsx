@@ -206,6 +206,7 @@ export default function TimerPanel() {
                 onChange={(e) =>
                   setSettings({ focusMinutes: e.target.value })
                 }
+                placeholder="25"
               />
             </label>
             <label className="block space-y-1.5">
@@ -220,6 +221,7 @@ export default function TimerPanel() {
                 onChange={(e) =>
                   setSettings({ breakMinutes: e.target.value })
                 }
+                placeholder="5"
               />
             </label>
           </div>

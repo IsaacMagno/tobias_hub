@@ -13,6 +13,7 @@ import {
   DEFAULT_POMODORO,
   loadPomodoroSettings,
   savePomodoroSettings,
+  resolveMinutes,
 } from "@/lib/pomodoro/settings";
 import { notifyAlarm, unlockAudio } from "@/lib/pomodoro/alarm";
 
@@ -48,9 +49,12 @@ export function PomodoroProvider({ children }) {
   }, []);
 
   // Em idle, o relógio acompanha o foco configurado (ex.: 1:00, não 25:00).
+  // Se o campo estiver vazio (usuário apagando), não mexe no relógio.
   useEffect(() => {
     if (phase !== "idle" || running) return;
-    const sec = Math.max(1, Number(settings.focusMinutes) || 25) * 60;
+    const mins = Number(settings.focusMinutes);
+    if (!Number.isFinite(mins) || mins < 1) return;
+    const sec = mins * 60;
     setPlannedSeconds(sec);
     setRemaining(sec);
   }, [settings.focusMinutes, phase, running]);
@@ -93,7 +97,9 @@ export function PomodoroProvider({ children }) {
           });
         }
         // auto offer break
-        const breakSec = Math.max(1, settings.breakMinutes) * 60;
+        const breakSec =
+          resolveMinutes(settings.breakMinutes, DEFAULT_POMODORO.breakMinutes, 60) *
+          60;
         setPhase("break");
         setPlannedSeconds(breakSec);
         setRemaining(breakSec);
@@ -101,8 +107,11 @@ export function PomodoroProvider({ children }) {
         setRunning(false);
       } else {
         setPhase("idle");
-        setPlannedSeconds(Math.max(1, settings.focusMinutes) * 60);
-        setRemaining(Math.max(1, settings.focusMinutes) * 60);
+        const focusSec =
+          resolveMinutes(settings.focusMinutes, DEFAULT_POMODORO.focusMinutes) *
+          60;
+        setPlannedSeconds(focusSec);
+        setRemaining(focusSec);
       }
     }
   }, [endsAt, plannedSeconds, settings.breakMinutes, settings.focusMinutes]);
@@ -139,12 +148,18 @@ export function PomodoroProvider({ children }) {
       minutes = null,
     } = {}) => {
       await unlockAudio();
-      const mins =
+      const fallback =
+        nextPhase === "break"
+          ? DEFAULT_POMODORO.breakMinutes
+          : DEFAULT_POMODORO.focusMinutes;
+      const max = nextPhase === "break" ? 60 : 180;
+      const raw =
         minutes ??
         (nextPhase === "break"
           ? settings.breakMinutes
           : settings.focusMinutes);
-      const sec = Math.max(1, Number(mins) || 25) * 60;
+      const mins = resolveMinutes(raw, fallback, max);
+      const sec = mins * 60;
       const end = Date.now() + sec * 1000;
       setPhase(nextPhase);
       setSource(nextSource);
@@ -181,7 +196,11 @@ export function PomodoroProvider({ children }) {
     setPhase("idle");
     setStepId(null);
     setLabel("");
-    const sec = Math.max(1, settings.focusMinutes) * 60;
+    const mins = resolveMinutes(
+      settings.focusMinutes,
+      DEFAULT_POMODORO.focusMinutes
+    );
+    const sec = mins * 60;
     setPlannedSeconds(sec);
     setRemaining(sec);
   }, [settings.focusMinutes]);

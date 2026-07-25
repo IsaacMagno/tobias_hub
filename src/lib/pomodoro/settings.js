@@ -12,29 +12,58 @@ export function loadPomodoroSettings() {
     if (!raw) return { ...DEFAULT_POMODORO };
     const parsed = JSON.parse(raw);
     return {
-      focusMinutes: clampMin(parsed.focusMinutes, 25),
-      breakMinutes: clampMin(parsed.breakMinutes, 5),
+      focusMinutes: clampStored(parsed.focusMinutes, 25, 180),
+      breakMinutes: clampStored(parsed.breakMinutes, 5, 60),
     };
   } catch {
     return { ...DEFAULT_POMODORO };
   }
 }
 
+/**
+ * Atualiza o estado dos inputs.
+ * Campo vazio permanece vazio (não volta sozinho para 25/5).
+ * Só grava no localStorage valores numéricos válidos.
+ */
 export function savePomodoroSettings(settings) {
-  const next = {
-    focusMinutes: clampMin(settings.focusMinutes, 25),
-    breakMinutes: clampMin(settings.breakMinutes, 5),
-  };
+  const prev = loadPomodoroSettings();
+  const focusMinutes = softMinutes(settings.focusMinutes, 180);
+  const breakMinutes = softMinutes(settings.breakMinutes, 60);
+  const next = { focusMinutes, breakMinutes };
+
   if (typeof window !== "undefined") {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        focusMinutes:
+          typeof focusMinutes === "number" ? focusMinutes : prev.focusMinutes,
+        breakMinutes:
+          typeof breakMinutes === "number" ? breakMinutes : prev.breakMinutes,
+      })
+    );
   }
   return next;
 }
 
-function clampMin(value, fallback) {
+/** Minutos válidos para iniciar o timer; fallback só na hora de usar. */
+export function resolveMinutes(value, fallback, max = 180) {
   const n = Number(value);
   if (!Number.isFinite(n) || n < 1) return fallback;
-  return Math.min(180, Math.round(n));
+  return Math.min(max, Math.round(n));
+}
+
+function softMinutes(value, max) {
+  if (value === "" || value === null || value === undefined) return "";
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "";
+  if (n < 1) return "";
+  return Math.min(max, Math.round(n));
+}
+
+function clampStored(value, fallback, max) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 1) return fallback;
+  return Math.min(max, Math.round(n));
 }
 
 export function formatClock(totalSeconds) {
