@@ -15,10 +15,15 @@ function getCtx() {
   return audioCtx;
 }
 
+function isPageVisible() {
+  if (typeof document === "undefined") return false;
+  return document.visibilityState === "visible";
+}
+
 export async function unlockAudio() {
   const ctx = getCtx();
   if (!ctx) return;
-  if (ctx.state === "suspended") {
+  if (ctx.state === "suspended" || ctx.state === "interrupted") {
     try {
       await ctx.resume();
     } catch {
@@ -28,6 +33,8 @@ export async function unlockAudio() {
 }
 
 export async function playAlarmTone({ loops = 4 } = {}) {
+  // Com a tela bloqueada o Web Audio costuma falhar/travar — só toca em foreground.
+  if (!isPageVisible()) return;
   try {
     const ctx = getCtx();
     if (!ctx) return;
@@ -41,48 +48,44 @@ export async function playAlarmTone({ loops = 4 } = {}) {
       osc.type = "square";
       osc.frequency.setValueAtTime(880, t0);
       osc.frequency.setValueAtTime(660, t0 + 0.2);
-      gain.gain.setValueAtTime(0.0001, t0);
-      gain.gain.exponentialRampToValueAtTime(0.18, t0 + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.55);
+      // linearRamp evita InvalidStateError do exponential com gain ~0
+      gain.gain.setValueAtTime(0, t0);
+      gain.gain.linearRampToValueAtTime(0.18, t0 + 0.02);
+      gain.gain.linearRampToValueAtTime(0, t0 + 0.55);
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.start(t0);
       osc.stop(t0 + 0.6);
     }
   } catch {
-    /* áudio pode falhar após tela bloqueada / contexto interrompido */
+    /* áudio pode falhar após background */
   }
 }
 
-/**
- * Som + notificação no fim do bloco.
- * Não pede permissão aqui (isso trava/quebra o fluxo ao voltar do background).
- * Peça permissão no boot via requestAlarmPermissions.
- */
-export async function notifyAlarm({ title, body, tag }) {
+async function showAlarmNotification({ title, body, tag }) {
   if (typeof window === "undefined") return;
-
-  try {
-    await playAlarmTone();
-  } catch {
-    /* ignore */
-  }
-
   if (!("Notification" in window)) return;
   if (Notification.permission !== "granted") return;
 
+  const opts = {
+    body: body || "",
+    tag: tag || "tobias-alarm",
+    data: { url: "/timer" },
+    silent: false,
+  };
+
   try {
-    const reg = await navigator.serviceWorker?.ready;
-    if (reg?.showNotification) {
-      await reg.showNotification(title, {
-        body,
-        tag: tag || "tobias-alarm",
-        renotify: true,
-        requireInteraction: true,
-        vibrate: [400, 200, 400, 200, 400],
-        data: { url: "/" },
-      });
-      return;
+    if ("serviceWorker" in navigator) {
+      const reg = await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("sw-ready-timeout")), 2000)
+        ),
+      ]);
+      if (reg?.showNotification) {
+        await reg.showNotification(title, opts);
+        return;
+      }
     }
   } catch {
     /* fall through */
@@ -90,7 +93,25 @@ export async function notifyAlarm({ title, body, tag }) {
 
   try {
     // eslint-disable-next-line no-new
-    new Notification(title, { body, tag: tag || "tobias-alarm" });
+    new Notification(title, opts);
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * Som (só se app visível) + notificação.
+ * Nunca pede permissão aqui — isso quebra o fluxo ao voltar do background.
+ */
+export async function notifyAlarm({ title, body, tag }) {
+  if (typeof window === "undefined") return;
+  try {
+    await showAlarmNotification({ title, body, tag });
+  } catch {
+    /* ignore */
+  }
+  try {
+    await playAlarmTone();
   } catch {
     /* ignore */
   }

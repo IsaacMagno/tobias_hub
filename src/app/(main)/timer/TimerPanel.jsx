@@ -44,18 +44,30 @@ export default function TimerPanel() {
   }, []);
 
   useEffect(() => {
-    if (!pendingLog) return;
+    if (!pendingLog) return undefined;
     let cancelled = false;
-    (async () => {
+
+    const load = async () => {
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") {
+        return;
+      }
       try {
         const state = await fetchContinueState();
         if (!cancelled) setContinueState(state);
       } catch {
         if (!cancelled) setContinueState(null);
       }
-    })();
+    };
+
+    const onVis = () => {
+      if (document.visibilityState === "visible") void load();
+    };
+
+    void load();
+    document.addEventListener("visibilitychange", onVis);
     return () => {
       cancelled = true;
+      document.removeEventListener("visibilitychange", onVis);
     };
   }, [pendingLog]);
 
@@ -154,7 +166,12 @@ export default function TimerPanel() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {phase === "idle" || (!running && remaining === plannedSeconds) ? (
+            {phase === "break" && !running ? (
+              <button type="button" className="btn-primary" onClick={startBreak}>
+                Iniciar descanso
+              </button>
+            ) : phase === "idle" ||
+              (!running && remaining === plannedSeconds) ? (
               <button type="button" className="btn-primary" onClick={startFree}>
                 Iniciar foco
               </button>

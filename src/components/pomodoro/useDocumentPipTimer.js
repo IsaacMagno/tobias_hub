@@ -6,7 +6,11 @@ import { usePomodoro } from "./PomodoroProvider";
 
 function getDocPip() {
   if (typeof window === "undefined") return null;
-  return window.documentPictureInPicture || null;
+  try {
+    return window.documentPictureInPicture || null;
+  } catch {
+    return null;
+  }
 }
 
 function supportsDocPip() {

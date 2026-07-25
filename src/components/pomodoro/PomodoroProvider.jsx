@@ -15,7 +15,7 @@ import {
   savePomodoroSettings,
   resolveMinutes,
 } from "@/lib/pomodoro/settings";
-import { notifyAlarm, unlockAudio } from "@/lib/pomodoro/alarm";
+import { notifyAlarm, unlockAudio, playAlarmTone } from "@/lib/pomodoro/alarm";
 
 const PomodoroContext = createContext(null);
 
@@ -38,6 +38,7 @@ export function PomodoroProvider({ children }) {
   const tickRef = useRef(null);
   const wakeLockRef = useRef(null);
   const handledEndRef = useRef(null);
+  const needToneRef = useRef(false);
   const phaseRef = useRef(phase);
   const sourceRef = useRef(source);
   const labelRef = useRef(label);
@@ -69,10 +70,12 @@ export function PomodoroProvider({ children }) {
   };
 
   const syncRemaining = useCallback(() => {
-    if (!endsAt) return;
-    const left = remainingFromEndsAt(endsAt);
-    setRemaining(left);
-    if (left <= 0) {
+    try {
+      if (!endsAt) return;
+      const left = remainingFromEndsAt(endsAt);
+      setRemaining(left);
+      if (left > 0) return;
+
       // Evita disparar duas vezes (interval + visibility ao desbloquear).
       if (handledEndRef.current === endsAt) return;
       handledEndRef.current = endsAt;
@@ -83,33 +86,44 @@ export function PomodoroProvider({ children }) {
       const was = phaseRef.current;
       const wasSource = sourceRef.current;
       const wasLabel = labelRef.current;
+      const planned = plannedSeconds;
 
-      void notifyAlarm({
+      // Side-effects fora do ciclo de setState / depois do frame.
+      const alarmPayload = {
         title:
-          was === "focus" ? "Foco concluído — Tobias" : "Descanso acabou — Tobias",
+          was === "focus"
+            ? "Foco concluído — Tobias"
+            : "Descanso acabou — Tobias",
         body:
           was === "focus"
             ? wasLabel || "Hora de uma pausa."
             : "Pronto para outro bloco de foco.",
         tag: `tobias-pomodoro-${was}`,
-      }).catch(() => {});
+      };
+      needToneRef.current =
+        typeof document !== "undefined" &&
+        document.visibilityState !== "visible";
+      window.setTimeout(() => {
+        void notifyAlarm(alarmPayload).catch(() => {});
+      }, 0);
 
       if (was === "focus") {
         if (wasSource === "free") {
           setPendingLog({
             label: wasLabel || "Pomodoro livre",
-            elapsedSeconds: plannedSeconds,
+            elapsedSeconds: planned,
             finishedAt: new Date().toISOString(),
           });
         }
-        // auto offer break
         const breakSec =
-          resolveMinutes(settings.breakMinutes, DEFAULT_POMODORO.breakMinutes, 60) *
-          60;
+          resolveMinutes(
+            settings.breakMinutes,
+            DEFAULT_POMODORO.breakMinutes,
+            60
+          ) * 60;
         setPhase("break");
         setPlannedSeconds(breakSec);
         setRemaining(breakSec);
-        setEndsAt(null);
         setRunning(false);
       } else {
         setPhase("idle");
@@ -119,6 +133,8 @@ export function PomodoroProvider({ children }) {
         setPlannedSeconds(focusSec);
         setRemaining(focusSec);
       }
+    } catch (err) {
+      console.error("[pomodoro] syncRemaining", err);
     }
   }, [endsAt, plannedSeconds, settings.breakMinutes, settings.focusMinutes]);
 
@@ -132,56 +148,70 @@ export function PomodoroProvider({ children }) {
     return clearTick;
   }, [running, endsAt, syncRemaining]);
 
-  // Visibility: resync when tab returns
+  // Visibility: resync when tab returns; toca som se o bloco acabou em background
   useEffect(() => {
     const onVis = () => {
-      if (document.visibilityState === "visible" && running) syncRemaining();
+      if (document.visibilityState !== "visible") return;
+      try {
+        if (running) syncRemaining();
+        if (needToneRef.current) {
+          needToneRef.current = false;
+          void playAlarmTone().catch(() => {});
+        }
+      } catch (err) {
+        console.error("[pomodoro] visibility", err);
+      }
     };
     document.addEventListener("visibilitychange", onVis);
-    return () => document.removeEventListener("visibilitychange", onVis);
+    window.addEventListener("pageshow", onVis);
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("pageshow", onVis);
+    };
   }, [running, syncRemaining]);
 
-  // Mantém a tela acordada enquanto o timer roda (ajuda no PWA; some ao bloquear).
+  // Mantém a tela acordada enquanto o timer roda (some ao bloquear o celular).
   useEffect(() => {
-    let released = false;
-
-    const release = async () => {
-      try {
-        await wakeLockRef.current?.release?.();
-      } catch {
-        /* ignore */
-      }
+    if (!running) {
+      const lock = wakeLockRef.current;
       wakeLockRef.current = null;
-    };
+      if (lock) {
+        void Promise.resolve(lock.release?.()).catch(() => {});
+      }
+      return undefined;
+    }
+
+    let cancelled = false;
 
     const request = async () => {
-      if (!running || typeof navigator === "undefined" || !navigator.wakeLock) {
+      if (cancelled || typeof navigator === "undefined" || !navigator.wakeLock) {
         return;
       }
       try {
-        wakeLockRef.current = await navigator.wakeLock.request("screen");
+        const lock = await navigator.wakeLock.request("screen");
+        if (cancelled) {
+          void Promise.resolve(lock.release?.()).catch(() => {});
+          return;
+        }
+        wakeLockRef.current = lock;
       } catch {
         /* permissão / policy — ok ignorar */
       }
     };
 
-    if (running) {
-      void request();
-    } else {
-      void release();
-    }
+    void request();
 
     const onVis = () => {
-      if (document.visibilityState === "visible" && running && !released) {
-        void request();
-      }
+      if (document.visibilityState === "visible" && !cancelled) void request();
     };
     document.addEventListener("visibilitychange", onVis);
 
     return () => {
-      released = true;
+      cancelled = true;
       document.removeEventListener("visibilitychange", onVis);
-      void release();
+      const lock = wakeLockRef.current;
+      wakeLockRef.current = null;
+      if (lock) void Promise.resolve(lock.release?.()).catch(() => {});
     };
   }, [running]);
 
