@@ -254,10 +254,9 @@ export default function TimerPanel() {
             Despertador / lembrete
           </h2>
           <p className="text-sm text-ash-400">
-            No Android (PWA), ao iniciar o foco o Tobias mantém um áudio discreto
-            + notificação “em andamento” para o alarme conseguir tocar com a tela
-            bloqueada. Autorize notificações e, se o Android economizar bateria
-            demais, tire o Tobias da otimização de bateria.
+            Com notificações liberadas, o Tobias tenta tocar o alarme mesmo com a
+            tela bloqueada. Ao desbloquear depois do alarme, o app recarrega sozinho
+            para não travar (limitação do PWA no Android).
           </p>
           <button type="button" className="btn-ghost" onClick={enableNotifications}>
             {notifState === "granted"
