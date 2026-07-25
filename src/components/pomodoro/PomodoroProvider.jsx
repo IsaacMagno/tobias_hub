@@ -105,7 +105,7 @@ export function PomodoroProvider({ children }) {
       const wasSource = sourceRef.current;
       const wasLabel = labelRef.current;
 
-      notifyAlarm({
+      void notifyAlarm({
         title:
           was === "focus" ? "Foco concluído — Tobias" : "Descanso acabou — Tobias",
         body:
@@ -113,7 +113,7 @@ export function PomodoroProvider({ children }) {
             ? wasLabel || "Hora de uma pausa."
             : "Pronto para outro bloco de foco.",
         tag: `tobias-pomodoro-${was}`,
-      });
+      }).catch(() => {});
       // Se o alarme tocou com a tela bloqueada, recarrega ao desbloquear.
       markReloadOnUnlock();
 
