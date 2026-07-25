@@ -84,8 +84,9 @@ export default function AppPermissionsPrompt() {
           </h2>
           <p className="text-sm leading-relaxed text-ash-400">
             Para o timer avisar com som e notificação — inclusive com a tela
-            bloqueada no celular — o navegador precisa liberar notificações e o
-            áudio do app.
+            bloqueada — o navegador precisa liberar notificações. Ao iniciar o
+            foco, o Tobias mantém o app acordado o suficiente para o alarme
+            tocar na hora.
           </p>
           <div className="flex flex-wrap gap-2 pt-1">
             <button

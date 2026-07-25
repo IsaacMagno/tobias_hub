@@ -254,10 +254,10 @@ export default function TimerPanel() {
             Despertador / lembrete
           </h2>
           <p className="text-sm text-ash-400">
-            No Android (PWA), o Tobias toca um alarme sonoro + notificação no fim
-            do bloco e no horário da missão em foco — enquanto o app instalado
-            estiver autorizado. Isso imita o despertador; não grava no app Relógio
-            do sistema (limitação do navegador).
+            No Android (PWA), ao iniciar o foco o Tobias mantém um áudio discreto
+            + notificação “em andamento” para o alarme conseguir tocar com a tela
+            bloqueada. Autorize notificações e, se o Android economizar bateria
+            demais, tire o Tobias da otimização de bateria.
           </p>
           <button type="button" className="btn-ghost" onClick={enableNotifications}>
             {notifState === "granted"

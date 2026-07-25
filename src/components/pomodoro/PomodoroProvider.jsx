@@ -15,7 +15,17 @@ import {
   savePomodoroSettings,
   resolveMinutes,
 } from "@/lib/pomodoro/settings";
-import { notifyAlarm, unlockAudio, playAlarmTone } from "@/lib/pomodoro/alarm";
+import {
+  notifyAlarm,
+  unlockAudio,
+  playAlarmTone,
+  startTimerKeepAlive,
+  stopTimerKeepAlive,
+  showRunningTimerNotification,
+  clearRunningTimerNotification,
+  scheduleServiceWorkerAlarm,
+  cancelServiceWorkerAlarm,
+} from "@/lib/pomodoro/alarm";
 
 const PomodoroContext = createContext(null);
 
@@ -39,6 +49,7 @@ export function PomodoroProvider({ children }) {
   const wakeLockRef = useRef(null);
   const handledEndRef = useRef(null);
   const needToneRef = useRef(false);
+  const endsAtRef = useRef(null);
   const phaseRef = useRef(phase);
   const sourceRef = useRef(source);
   const labelRef = useRef(label);
@@ -46,6 +57,7 @@ export function PomodoroProvider({ children }) {
   phaseRef.current = phase;
   sourceRef.current = source;
   labelRef.current = label;
+  endsAtRef.current = endsAt;
 
   useEffect(() => {
     setSettingsState(loadPomodoroSettings());
@@ -88,7 +100,6 @@ export function PomodoroProvider({ children }) {
       const wasLabel = labelRef.current;
       const planned = plannedSeconds;
 
-      // Side-effects fora do ciclo de setState / depois do frame.
       const alarmPayload = {
         title:
           was === "focus"
@@ -100,9 +111,12 @@ export function PomodoroProvider({ children }) {
             : "Pronto para outro bloco de foco.",
         tag: `tobias-pomodoro-${was}`,
       };
-      needToneRef.current =
-        typeof document !== "undefined" &&
-        document.visibilityState !== "visible";
+      // Sempre tenta som + notificação (também com tela bloqueada).
+      // Protegido contra crash; keep-alive ajuda o SO a deixar tocar.
+      needToneRef.current = false;
+      stopTimerKeepAlive();
+      void clearRunningTimerNotification();
+      void cancelServiceWorkerAlarm();
       window.setTimeout(() => {
         void notifyAlarm(alarmPayload).catch(() => {});
       }, 0);
@@ -145,15 +159,65 @@ export function PomodoroProvider({ children }) {
     }
     syncRemaining();
     tickRef.current = setInterval(syncRemaining, 250);
-    return clearTick;
+    // Timeout absoluto: com throttle de background, 1 disparo no fim é mais confiável.
+    const delay = Math.max(0, endsAt - Date.now()) + 80;
+    const endId = window.setTimeout(() => {
+      syncRemaining();
+    }, delay);
+    return () => {
+      clearTick();
+      window.clearTimeout(endId);
+    };
   }, [running, endsAt, syncRemaining]);
 
-  // Visibility: resync when tab returns; toca som se o bloco acabou em background
+  // Keep-alive + notificação "em andamento" + alarme no SW enquanto roda.
+  useEffect(() => {
+    if (!running || !endsAt) {
+      stopTimerKeepAlive();
+      void clearRunningTimerNotification();
+      void cancelServiceWorkerAlarm();
+      return undefined;
+    }
+
+    const was = phaseRef.current;
+    const label = labelRef.current;
+    const title =
+      was === "break"
+        ? "Tobias · descanso em andamento"
+        : "Tobias · foco em andamento";
+    const body = label
+      ? `${label} — o alarme toca ao terminar.`
+      : "O alarme toca ao terminar o bloco, mesmo com a tela bloqueada.";
+
+    void startTimerKeepAlive();
+    void showRunningTimerNotification({ title, body });
+    void scheduleServiceWorkerAlarm({
+      endsAt,
+      title:
+        was === "break" ? "Descanso acabou — Tobias" : "Foco concluído — Tobias",
+      body:
+        was === "break"
+          ? "Pronto para outro bloco de foco."
+          : label || "Hora de uma pausa.",
+      tag: `tobias-pomodoro-${was || "focus"}`,
+    });
+
+    return () => {
+      stopTimerKeepAlive();
+      void clearRunningTimerNotification();
+      void cancelServiceWorkerAlarm();
+    };
+  }, [running, endsAt]);
+
+  // Visibility: resync + reforço do keep-alive ao voltar
   useEffect(() => {
     const onVis = () => {
       if (document.visibilityState !== "visible") return;
       try {
-        if (running) syncRemaining();
+        if (running) {
+          syncRemaining();
+          void startTimerKeepAlive();
+        }
         if (needToneRef.current) {
           needToneRef.current = false;
           void playAlarmTone().catch(() => {});
@@ -228,6 +292,7 @@ export function PomodoroProvider({ children }) {
       minutes = null,
     } = {}) => {
       await unlockAudio();
+      await startTimerKeepAlive();
       handledEndRef.current = null;
       const fallback =
         nextPhase === "break"
@@ -258,6 +323,9 @@ export function PomodoroProvider({ children }) {
     if (!running) return;
     const left = remainingFromEndsAt(endsAt);
     clearTick();
+    stopTimerKeepAlive();
+    void clearRunningTimerNotification();
+    void cancelServiceWorkerAlarm();
     setRunning(false);
     setEndsAt(null);
     setRemaining(left);
@@ -266,12 +334,16 @@ export function PomodoroProvider({ children }) {
   const resume = useCallback(async () => {
     if (running || remaining <= 0) return;
     await unlockAudio();
+    await startTimerKeepAlive();
     setEndsAt(Date.now() + remaining * 1000);
     setRunning(true);
   }, [running, remaining]);
 
   const stop = useCallback(() => {
     clearTick();
+    stopTimerKeepAlive();
+    void clearRunningTimerNotification();
+    void cancelServiceWorkerAlarm();
     setRunning(false);
     setEndsAt(null);
     setPhase("idle");
