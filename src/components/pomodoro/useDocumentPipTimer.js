@@ -4,8 +4,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { formatClock } from "@/lib/pomodoro/settings";
 import { usePomodoro } from "./PomodoroProvider";
 
+function getDocPip() {
+  if (typeof window === "undefined") return null;
+  return window.documentPictureInPicture || null;
+}
+
 function supportsDocPip() {
-  return typeof window !== "undefined" && "documentPictureInPicture" in window;
+  return Boolean(getDocPip()?.requestWindow);
 }
 
 /** Viewport pedido ao Chrome (o browser pode forçar um mínimo maior). */
@@ -149,7 +154,7 @@ export default function useDocumentPipTimer() {
   }, []);
 
   const refresh = useCallback(() => {
-    const pipWindow = pipRef.current || documentPictureInPicture?.window;
+    const pipWindow = pipRef.current || getDocPip()?.window || null;
     if (!pipWindow) return;
     const snap = readSnap();
     updatePipChrome(pipWindow.document, snap);
@@ -159,7 +164,7 @@ export default function useDocumentPipTimer() {
   const setIdle = useCallback(
     (idle) => {
       idleRef.current = idle;
-      const pipWindow = pipRef.current || documentPictureInPicture?.window;
+      const pipWindow = pipRef.current || getDocPip()?.window || null;
       if (!pipWindow) return;
       // só fundo — não reescreve o relógio com valor stale
       updatePipChrome(pipWindow.document, readSnap());
@@ -218,15 +223,16 @@ export default function useDocumentPipTimer() {
   );
 
   const openPip = useCallback(async () => {
-    if (!supportsDocPip()) {
+    const docPip = getDocPip();
+    if (!docPip?.requestWindow) {
       throw new Error("Picture-in-Picture não disponível neste browser");
     }
 
     // Fecha a anterior para não herdar tamanho grande memorizado pelo Chrome
     // (sem await — precisa manter o gesto do clique para o requestWindow)
-    if (documentPictureInPicture.window) {
+    if (docPip.window) {
       try {
-        documentPictureInPicture.window.close();
+        docPip.window.close();
       } catch {
         /* ignore */
       }
@@ -235,7 +241,7 @@ export default function useDocumentPipTimer() {
       pipRef.current = null;
     }
 
-    const pipWindow = await documentPictureInPicture.requestWindow({
+    const pipWindow = await docPip.requestWindow({
       width: PIP_SIZE.width,
       height: PIP_SIZE.height,
       disallowReturnToOpener: true,
@@ -266,7 +272,7 @@ export default function useDocumentPipTimer() {
 
   const closePip = useCallback(() => {
     try {
-      documentPictureInPicture.window?.close();
+      getDocPip()?.window?.close();
     } catch {
       /* ignore */
     }
@@ -278,7 +284,7 @@ export default function useDocumentPipTimer() {
   }, []);
 
   useEffect(() => {
-    if (!documentPictureInPicture?.window) {
+    if (!getDocPip()?.window) {
       if (pipOpen) setPipOpen(false);
       return;
     }
@@ -286,7 +292,7 @@ export default function useDocumentPipTimer() {
   }, [refresh, pipOpen, remaining, running, phase, label]);
 
   useEffect(() => {
-    if (phase === "idle" && documentPictureInPicture?.window) {
+    if (phase === "idle" && getDocPip()?.window) {
       closePip();
     }
   }, [phase, closePip]);
