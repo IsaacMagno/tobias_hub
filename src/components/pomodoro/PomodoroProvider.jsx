@@ -19,9 +19,36 @@ import { notifyAlarm, unlockAudio } from "@/lib/pomodoro/alarm";
 
 const PomodoroContext = createContext(null);
 
+const RELOAD_AFTER_ALARM_KEY = "tobias-reload-after-alarm";
+
 function remainingFromEndsAt(endsAt) {
   if (!endsAt) return 0;
   return Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
+}
+
+function markReloadOnUnlock() {
+  try {
+    if (
+      typeof document !== "undefined" &&
+      document.visibilityState !== "visible"
+    ) {
+      window.sessionStorage.setItem(RELOAD_AFTER_ALARM_KEY, "1");
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+function consumeReloadOnUnlock() {
+  try {
+    if (window.sessionStorage.getItem(RELOAD_AFTER_ALARM_KEY) !== "1") {
+      return false;
+    }
+    window.sessionStorage.removeItem(RELOAD_AFTER_ALARM_KEY);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function PomodoroProvider({ children }) {
@@ -87,6 +114,8 @@ export function PomodoroProvider({ children }) {
             : "Pronto para outro bloco de foco.",
         tag: `tobias-pomodoro-${was}`,
       });
+      // Se o alarme tocou com a tela bloqueada, recarrega ao desbloquear.
+      markReloadOnUnlock();
 
       if (was === "focus") {
         if (wasSource === "free") {
@@ -126,10 +155,15 @@ export function PomodoroProvider({ children }) {
     return clearTick;
   }, [running, endsAt, syncRemaining]);
 
-  // Visibility: resync when tab returns
+  // Visibility: resync; se o alarme tocou bloqueado, reload ao desbloquear.
   useEffect(() => {
     const onVis = () => {
-      if (document.visibilityState === "visible" && running) syncRemaining();
+      if (document.visibilityState !== "visible") return;
+      if (consumeReloadOnUnlock()) {
+        window.location.reload();
+        return;
+      }
+      if (running) syncRemaining();
     };
     document.addEventListener("visibilitychange", onVis);
     return () => document.removeEventListener("visibilitychange", onVis);
