@@ -6,8 +6,13 @@ import { usePomodoro } from "./PomodoroProvider";
 
 function getDocPip() {
   if (typeof window === "undefined") return null;
-  return window.documentPictureInPicture || null;
+  try {
+    return window.documentPictureInPicture || null;
+  } catch {
+    return null;
+  }
 }
+
 
 function supportsDocPip() {
   return Boolean(getDocPip()?.requestWindow);
@@ -284,16 +289,24 @@ export default function useDocumentPipTimer() {
   }, []);
 
   useEffect(() => {
-    if (!getDocPip()?.window) {
-      if (pipOpen) setPipOpen(false);
-      return;
+    try {
+      if (!getDocPip()?.window) {
+        if (pipOpen) setPipOpen(false);
+        return;
+      }
+      refresh();
+    } catch {
+      /* PiP API instável em alguns Androids ao acordar */
     }
-    refresh();
   }, [refresh, pipOpen, remaining, running, phase, label]);
 
   useEffect(() => {
-    if (phase === "idle" && getDocPip()?.window) {
-      closePip();
+    try {
+      if (phase === "idle" && getDocPip()?.window) {
+        closePip();
+      }
+    } catch {
+      /* ignore */
     }
   }, [phase, closePip]);
 

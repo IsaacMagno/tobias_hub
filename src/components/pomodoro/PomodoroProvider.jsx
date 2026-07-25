@@ -16,39 +16,22 @@ import {
   resolveMinutes,
 } from "@/lib/pomodoro/settings";
 import { notifyAlarm, unlockAudio } from "@/lib/pomodoro/alarm";
+import {
+  saveBackgroundAlarmSnapshot,
+  loadBackgroundAlarmSnapshot,
+} from "@/components/UnlockReloadListener";
 
 const PomodoroContext = createContext(null);
-
-const RELOAD_AFTER_ALARM_KEY = "tobias-reload-after-alarm";
 
 function remainingFromEndsAt(endsAt) {
   if (!endsAt) return 0;
   return Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
 }
 
-function markReloadOnUnlock() {
-  try {
-    if (
-      typeof document !== "undefined" &&
-      document.visibilityState !== "visible"
-    ) {
-      window.sessionStorage.setItem(RELOAD_AFTER_ALARM_KEY, "1");
-    }
-  } catch {
-    /* ignore */
-  }
-}
-
-function consumeReloadOnUnlock() {
-  try {
-    if (window.sessionStorage.getItem(RELOAD_AFTER_ALARM_KEY) !== "1") {
-      return false;
-    }
-    window.sessionStorage.removeItem(RELOAD_AFTER_ALARM_KEY);
-    return true;
-  } catch {
-    return false;
-  }
+function isHidden() {
+  return (
+    typeof document !== "undefined" && document.visibilityState !== "visible"
+  );
 }
 
 export function PomodoroProvider({ children }) {
@@ -61,30 +44,50 @@ export function PomodoroProvider({ children }) {
   const [endsAt, setEndsAt] = useState(null);
   const [plannedSeconds, setPlannedSeconds] = useState(25 * 60);
   const [remaining, setRemaining] = useState(25 * 60);
-  const [pendingLog, setPendingLog] = useState(null); // after free focus ends
+  const [pendingLog, setPendingLog] = useState(null);
+  const [hydrated, setHydrated] = useState(false);
   const tickRef = useRef(null);
+  const handledEndRef = useRef(null);
   const phaseRef = useRef(phase);
   const sourceRef = useRef(source);
   const labelRef = useRef(label);
+  const settingsRef = useRef(settings);
+  const plannedRef = useRef(plannedSeconds);
 
   phaseRef.current = phase;
   sourceRef.current = source;
   labelRef.current = label;
+  settingsRef.current = settings;
+  plannedRef.current = plannedSeconds;
 
   useEffect(() => {
     setSettingsState(loadPomodoroSettings());
+    const snap = loadBackgroundAlarmSnapshot();
+    if (snap && typeof snap === "object") {
+      if (snap.phase) setPhase(snap.phase);
+      if (snap.source) setSource(snap.source);
+      if (typeof snap.label === "string") setLabel(snap.label);
+      if (typeof snap.plannedSeconds === "number") {
+        setPlannedSeconds(snap.plannedSeconds);
+      }
+      if (typeof snap.remaining === "number") setRemaining(snap.remaining);
+      if (snap.pendingLog) setPendingLog(snap.pendingLog);
+      setRunning(false);
+      setEndsAt(null);
+    }
+    setHydrated(true);
   }, []);
 
-  // Em idle, o relógio acompanha o foco configurado (ex.: 1:00, não 25:00).
-  // Se o campo estiver vazio (usuário apagando), não mexe no relógio.
+  // Em idle, o relógio acompanha o foco configurado.
   useEffect(() => {
+    if (!hydrated) return;
     if (phase !== "idle" || running) return;
     const mins = Number(settings.focusMinutes);
     if (!Number.isFinite(mins) || mins < 1) return;
     const sec = mins * 60;
     setPlannedSeconds(sec);
     setRemaining(sec);
-  }, [settings.focusMinutes, phase, running]);
+  }, [settings.focusMinutes, phase, running, hydrated]);
 
   const clearTick = () => {
     if (tickRef.current) {
@@ -94,16 +97,23 @@ export function PomodoroProvider({ children }) {
   };
 
   const syncRemaining = useCallback(() => {
-    if (!endsAt) return;
-    const left = remainingFromEndsAt(endsAt);
-    setRemaining(left);
-    if (left <= 0) {
+    try {
+      if (!endsAt) return;
+      const left = remainingFromEndsAt(endsAt);
+      if (left > 0) {
+        setRemaining(left);
+        return;
+      }
+
+      if (handledEndRef.current === endsAt) return;
+      handledEndRef.current = endsAt;
+
       clearTick();
-      setRunning(false);
-      setEndsAt(null);
       const was = phaseRef.current;
       const wasSource = sourceRef.current;
       const wasLabel = labelRef.current;
+      const planned = plannedRef.current;
+      const cfg = settingsRef.current;
 
       void notifyAlarm({
         title:
@@ -114,36 +124,59 @@ export function PomodoroProvider({ children }) {
             : "Pronto para outro bloco de foco.",
         tag: `tobias-pomodoro-${was}`,
       }).catch(() => {});
-      // Se o alarme tocou com a tela bloqueada, recarrega ao desbloquear.
-      markReloadOnUnlock();
 
+      const breakSec =
+        resolveMinutes(cfg.breakMinutes, DEFAULT_POMODORO.breakMinutes, 60) * 60;
+      const focusSec =
+        resolveMinutes(cfg.focusMinutes, DEFAULT_POMODORO.focusMinutes) * 60;
+
+      let nextPhase = "idle";
+      let nextPlanned = focusSec;
+      let nextRemaining = focusSec;
+      let nextPending = null;
       if (was === "focus") {
+        nextPhase = "break";
+        nextPlanned = breakSec;
+        nextRemaining = breakSec;
         if (wasSource === "free") {
-          setPendingLog({
+          nextPending = {
             label: wasLabel || "Pomodoro livre",
-            elapsedSeconds: plannedSeconds,
+            elapsedSeconds: planned,
             finishedAt: new Date().toISOString(),
-          });
+          };
         }
-        // auto offer break
-        const breakSec =
-          resolveMinutes(settings.breakMinutes, DEFAULT_POMODORO.breakMinutes, 60) *
-          60;
-        setPhase("break");
-        setPlannedSeconds(breakSec);
-        setRemaining(breakSec);
-        setEndsAt(null);
-        setRunning(false);
-      } else {
-        setPhase("idle");
-        const focusSec =
-          resolveMinutes(settings.focusMinutes, DEFAULT_POMODORO.focusMinutes) *
-          60;
-        setPlannedSeconds(focusSec);
-        setRemaining(focusSec);
       }
+
+      // Com tela bloqueada: NÃO atualiza UI React (isso crashava no unlock).
+      // Só alarme + flag de reload; estado volta limpo depois do reload.
+      if (isHidden()) {
+        saveBackgroundAlarmSnapshot({
+          phase: nextPhase,
+          source: wasSource,
+          label: was === "focus" ? wasLabel : "",
+          plannedSeconds: nextPlanned,
+          remaining: nextRemaining,
+          pendingLog: nextPending,
+        });
+        setRunning(false);
+        setEndsAt(null);
+        return;
+      }
+
+      setRunning(false);
+      setEndsAt(null);
+      if (nextPending) setPendingLog(nextPending);
+      setPhase(nextPhase);
+      setPlannedSeconds(nextPlanned);
+      setRemaining(nextRemaining);
+      if (was !== "focus") {
+        setLabel("");
+        setStepId(null);
+      }
+    } catch (err) {
+      console.error("[pomodoro] syncRemaining", err);
     }
-  }, [endsAt, plannedSeconds, settings.breakMinutes, settings.focusMinutes]);
+  }, [endsAt]);
 
   useEffect(() => {
     if (!running || !endsAt) {
@@ -155,14 +188,10 @@ export function PomodoroProvider({ children }) {
     return clearTick;
   }, [running, endsAt, syncRemaining]);
 
-  // Visibility: resync; se o alarme tocou bloqueado, reload ao desbloquear.
+  // Visibility: se ainda estiver rodando ao voltar, sincroniza (fim em foreground).
   useEffect(() => {
     const onVis = () => {
       if (document.visibilityState !== "visible") return;
-      if (consumeReloadOnUnlock()) {
-        window.location.reload();
-        return;
-      }
       if (running) syncRemaining();
     };
     document.addEventListener("visibilitychange", onVis);
@@ -182,6 +211,7 @@ export function PomodoroProvider({ children }) {
       minutes = null,
     } = {}) => {
       await unlockAudio();
+      handledEndRef.current = null;
       const fallback =
         nextPhase === "break"
           ? DEFAULT_POMODORO.breakMinutes
@@ -219,6 +249,7 @@ export function PomodoroProvider({ children }) {
   const resume = useCallback(async () => {
     if (running || remaining <= 0) return;
     await unlockAudio();
+    handledEndRef.current = null;
     setEndsAt(Date.now() + remaining * 1000);
     setRunning(true);
   }, [running, remaining]);
