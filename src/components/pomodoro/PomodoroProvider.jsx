@@ -49,7 +49,6 @@ export function PomodoroProvider({ children }) {
   const wakeLockRef = useRef(null);
   const handledEndRef = useRef(null);
   const needToneRef = useRef(false);
-  const endsAtRef = useRef(null);
   const phaseRef = useRef(phase);
   const sourceRef = useRef(source);
   const labelRef = useRef(label);
@@ -57,7 +56,6 @@ export function PomodoroProvider({ children }) {
   phaseRef.current = phase;
   sourceRef.current = source;
   labelRef.current = label;
-  endsAtRef.current = endsAt;
 
   useEffect(() => {
     setSettingsState(loadPomodoroSettings());
