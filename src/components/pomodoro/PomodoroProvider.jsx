@@ -36,6 +36,8 @@ export function PomodoroProvider({ children }) {
   const [remaining, setRemaining] = useState(25 * 60);
   const [pendingLog, setPendingLog] = useState(null); // after free focus ends
   const tickRef = useRef(null);
+  const wakeLockRef = useRef(null);
+  const handledEndRef = useRef(null);
   const phaseRef = useRef(phase);
   const sourceRef = useRef(source);
   const labelRef = useRef(label);
@@ -71,6 +73,10 @@ export function PomodoroProvider({ children }) {
     const left = remainingFromEndsAt(endsAt);
     setRemaining(left);
     if (left <= 0) {
+      // Evita disparar duas vezes (interval + visibility ao desbloquear).
+      if (handledEndRef.current === endsAt) return;
+      handledEndRef.current = endsAt;
+
       clearTick();
       setRunning(false);
       setEndsAt(null);
@@ -78,7 +84,7 @@ export function PomodoroProvider({ children }) {
       const wasSource = sourceRef.current;
       const wasLabel = labelRef.current;
 
-      notifyAlarm({
+      void notifyAlarm({
         title:
           was === "focus" ? "Foco concluído — Tobias" : "Descanso acabou — Tobias",
         body:
@@ -86,7 +92,7 @@ export function PomodoroProvider({ children }) {
             ? wasLabel || "Hora de uma pausa."
             : "Pronto para outro bloco de foco.",
         tag: `tobias-pomodoro-${was}`,
-      });
+      }).catch(() => {});
 
       if (was === "focus") {
         if (wasSource === "free") {
@@ -135,6 +141,50 @@ export function PomodoroProvider({ children }) {
     return () => document.removeEventListener("visibilitychange", onVis);
   }, [running, syncRemaining]);
 
+  // Mantém a tela acordada enquanto o timer roda (ajuda no PWA; some ao bloquear).
+  useEffect(() => {
+    let released = false;
+
+    const release = async () => {
+      try {
+        await wakeLockRef.current?.release?.();
+      } catch {
+        /* ignore */
+      }
+      wakeLockRef.current = null;
+    };
+
+    const request = async () => {
+      if (!running || typeof navigator === "undefined" || !navigator.wakeLock) {
+        return;
+      }
+      try {
+        wakeLockRef.current = await navigator.wakeLock.request("screen");
+      } catch {
+        /* permissão / policy — ok ignorar */
+      }
+    };
+
+    if (running) {
+      void request();
+    } else {
+      void release();
+    }
+
+    const onVis = () => {
+      if (document.visibilityState === "visible" && running && !released) {
+        void request();
+      }
+    };
+    document.addEventListener("visibilitychange", onVis);
+
+    return () => {
+      released = true;
+      document.removeEventListener("visibilitychange", onVis);
+      void release();
+    };
+  }, [running]);
+
   const setSettings = (patch) => {
     setSettingsState((prev) => savePomodoroSettings({ ...prev, ...patch }));
   };
@@ -148,6 +198,7 @@ export function PomodoroProvider({ children }) {
       minutes = null,
     } = {}) => {
       await unlockAudio();
+      handledEndRef.current = null;
       const fallback =
         nextPhase === "break"
           ? DEFAULT_POMODORO.breakMinutes

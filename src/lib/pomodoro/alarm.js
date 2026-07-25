@@ -5,7 +5,13 @@ function getCtx() {
   if (typeof window === "undefined") return null;
   const AC = window.AudioContext || window.webkitAudioContext;
   if (!AC) return null;
-  if (!audioCtx) audioCtx = new AC();
+  try {
+    if (!audioCtx || audioCtx.state === "closed") {
+      audioCtx = new AC();
+    }
+  } catch {
+    return null;
+  }
   return audioCtx;
 }
 
@@ -22,40 +28,48 @@ export async function unlockAudio() {
 }
 
 export async function playAlarmTone({ loops = 4 } = {}) {
-  const ctx = getCtx();
-  if (!ctx) return;
-  await unlockAudio();
+  try {
+    const ctx = getCtx();
+    if (!ctx) return;
+    await unlockAudio();
 
-  const now = ctx.currentTime;
-  for (let i = 0; i < loops; i++) {
-    const t0 = now + i * 0.85;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = "square";
-    osc.frequency.setValueAtTime(880, t0);
-    osc.frequency.setValueAtTime(660, t0 + 0.2);
-    gain.gain.setValueAtTime(0.0001, t0);
-    gain.gain.exponentialRampToValueAtTime(0.18, t0 + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.55);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start(t0);
-    osc.stop(t0 + 0.6);
+    const now = ctx.currentTime;
+    for (let i = 0; i < loops; i++) {
+      const t0 = now + i * 0.85;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "square";
+      osc.frequency.setValueAtTime(880, t0);
+      osc.frequency.setValueAtTime(660, t0 + 0.2);
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(0.18, t0 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.55);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(t0);
+      osc.stop(t0 + 0.6);
+    }
+  } catch {
+    /* áudio pode falhar após tela bloqueada / contexto interrompido */
   }
 }
 
+/**
+ * Som + notificação no fim do bloco.
+ * Não pede permissão aqui (isso trava/quebra o fluxo ao voltar do background).
+ * Peça permissão no boot via requestAlarmPermissions.
+ */
 export async function notifyAlarm({ title, body, tag }) {
   if (typeof window === "undefined") return;
-  if (!("Notification" in window)) {
+
+  try {
     await playAlarmTone();
-    return;
+  } catch {
+    /* ignore */
   }
-  let permission = Notification.permission;
-  if (permission === "default") {
-    permission = await Notification.requestPermission();
-  }
-  await playAlarmTone();
-  if (permission !== "granted") return;
+
+  if (!("Notification" in window)) return;
+  if (Notification.permission !== "granted") return;
 
   try {
     const reg = await navigator.serviceWorker?.ready;
@@ -80,4 +94,21 @@ export async function notifyAlarm({ title, body, tag }) {
   } catch {
     /* ignore */
   }
+}
+
+/** Desbloqueia áudio e pede notificação (chamar a partir de gesto do usuário). */
+export async function requestAlarmPermissions() {
+  await unlockAudio();
+  if (typeof window === "undefined" || !("Notification" in window)) {
+    return { audio: true, notification: "unsupported" };
+  }
+  let permission = Notification.permission;
+  if (permission === "default") {
+    try {
+      permission = await Notification.requestPermission();
+    } catch {
+      permission = Notification.permission;
+    }
+  }
+  return { audio: true, notification: permission };
 }

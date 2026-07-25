@@ -6,7 +6,7 @@ import toast from "react-hot-toast";
 import { BusyRail, Spinner } from "@/components/LoadingUI";
 import { formatClock } from "@/lib/pomodoro/settings";
 import { usePomodoro } from "@/components/pomodoro/PomodoroProvider";
-import { unlockAudio } from "@/lib/pomodoro/alarm";
+import { requestAlarmPermissions } from "@/lib/pomodoro/alarm";
 import {
   fetchContinueState,
   actionCompleteStep,
@@ -65,15 +65,16 @@ export default function TimerPanel() {
       : 0;
 
   const enableNotifications = async () => {
-    await unlockAudio();
     if (!("Notification" in window)) {
       toast.error("Notificações não disponíveis neste browser");
       return;
     }
-    const perm = await Notification.requestPermission();
+    const { notification: perm } = await requestAlarmPermissions();
     setNotifState(perm);
     if (perm === "granted") {
       toast.success("Lembretes liberados");
+    } else if (perm === "unsupported") {
+      toast.error("Notificações não disponíveis neste browser");
     } else {
       toast.error("Permissão negada");
     }

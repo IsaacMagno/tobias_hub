@@ -1,5 +1,5 @@
 /* Tobias PWA — só o necessário para ser instalável; não intercepta navegação/API */
-const CACHE = "tobias-shell-v3";
+const CACHE = "tobias-shell-v4";
 const PRECACHE = [
   "/manifest.webmanifest",
   "/icons/icon-192.png",
@@ -43,25 +43,22 @@ self.addEventListener("notificationclick", (event) => {
   const target = event.notification?.data?.url || "/";
   event.waitUntil(
     (async () => {
-      const all = await clients.matchAll({
-        type: "window",
-        includeUncontrolled: true,
-      });
-      for (const client of all) {
-        if ("focus" in client) {
-          await client.focus();
-          if ("navigate" in client) {
-            try {
-              await client.navigate(target);
-            } catch {
-              /* ignore */
-            }
+      try {
+        const all = await clients.matchAll({
+          type: "window",
+          includeUncontrolled: true,
+        });
+        for (const client of all) {
+          if ("focus" in client) {
+            await client.focus();
+            return;
           }
-          return;
         }
-      }
-      if (clients.openWindow) {
-        await clients.openWindow(target);
+        if (clients.openWindow) {
+          await clients.openWindow(target);
+        }
+      } catch {
+        /* ignore — evita derrubar o app ao tocar na notificação */
       }
     })()
   );
