@@ -98,7 +98,7 @@ export const TOURS = {
       {
         id: "timer-here",
         title: "Timer nesta tela",
-        body: "À direita (ou abaixo no celular) você mede a sessão do passo. O tempo vira histórico. Também existe a página Timer para pomodoro livre.",
+        body: "À direita (ou abaixo no celular) você mede a sessão do passo. Use Flutuar no PC para manter o cronômetro por cima. Também existe a página Timer para pomodoro livre.",
         anchor: "tour-continue-timer",
       },
       {
@@ -123,13 +123,13 @@ export const TOURS = {
       {
         id: "timer-intro",
         title: "Pomodoro livre",
-        body: "Use quando quiser focar sem estar no Continuar. A barra no topo do app acompanha mesmo se você mudar de tela.",
+        body: "Use quando quiser focar sem estar no Continuar. No PC, Flutuar abre o cronômetro por cima de outros programas.",
         anchor: "tour-timer-header",
       },
       {
         id: "timer-controls",
         title: "Iniciar, pausar, encerrar",
-        body: "Inicie um bloco de foco. Pausar congela; Encerrar zera. No fim, o Tobias pode perguntar se marca o passo da missão em foco.",
+        body: "Inicie um bloco de foco. Pausar congela; Encerrar zera. Flutuar (ao lado) abre a janelinha. No fim, o Tobias pode perguntar se marca o passo da missão em foco.",
         anchor: "tour-timer-controls",
       },
       {
@@ -195,7 +195,7 @@ export const TOURS = {
       {
         id: "next-profile",
         title: "Próximo: Perfil",
-        body: "No Perfil ficam nível, atributos, bio, visibilidade e pins das conquistas.",
+        body: "No Perfil ficam nível, atributos, bio e pins das conquistas. O perfil é público; privacidade é da campanha.",
         ctaHref: "/profile",
         ctaLabel: "Abrir Perfil",
       },
@@ -240,14 +240,8 @@ export const TOURS = {
       {
         id: "identity",
         title: "Sua ficha",
-        body: "Nome, título dinâmico, nível e XP. O título muda conforme você progride nos atributos.",
+        body: "Nome, título dinâmico, nível e XP. O perfil é público — o que você escolhe mostrar são as campanhas públicas.",
         anchor: "tour-profile-header",
-      },
-      {
-        id: "visibility",
-        title: "Público ou privado",
-        body: "Privado: só você. Público: aparece em Campeões para outros visitarem. Alterna com um toque.",
-        anchor: "tour-profile-visibility",
       },
       {
         id: "attrs",
@@ -300,7 +294,7 @@ export const TOURS = {
       {
         id: "next-champions",
         title: "Próximo: Campeões",
-        body: "Perfis públicos de outras pessoas — inspiração, não ranking.",
+        body: "Perfis de outras pessoas — inspiração, não ranking. Campanhas privadas não aparecem.",
         ctaHref: "/champions",
         ctaLabel: "Abrir Campeões",
       },
@@ -316,13 +310,13 @@ export const TOURS = {
       {
         id: "intro",
         title: "Campeões",
-        body: "Lista quem deixou o perfil público. Toque num nome para ver a ficha e campanhas públicas.",
+        body: "Lista os outros no Tobias. Toque num nome para ver a ficha e as campanhas que eles tornaram públicas.",
         anchor: "tour-champions-header",
       },
       {
         id: "empty",
         title: "Lista vazia?",
-        body: "Se ninguém aparecer, torne seu perfil público em Perfil — ou espere outros fazerem o mesmo.",
+        body: "Se ainda não houver ninguém, espere outros entrarem com convite — ou volte depois.",
         anchor: "tour-champions-list",
       },
       {

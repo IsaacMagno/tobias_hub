@@ -1,7 +1,9 @@
 /**
- * Perfil, atributos, visibilidade e community card (Caps 9–12).
+ * Perfil, atributos e community card (Caps 9–12).
+ * Perfis são públicos; privacidade fica na campanha.
  */
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isHiddenUsername } from "@/lib/auth/hiddenChampions";
 import { calculateLevel } from "@/lib/helpers/calculateLevel";
 import {
   grantPrimaryStat,
@@ -161,7 +163,6 @@ export async function getMyProfile(championId) {
     xp: champion.xp,
     level: champion.level,
     biography: champion.biography || "",
-    profile_visibility: champion.profile_visibility || "private",
     files: champion.files,
     statistics: {
       strength: statistics.strength,
@@ -175,15 +176,15 @@ export async function getMyProfile(championId) {
   };
 }
 
-export async function updateProfileVisibility(championId, visibility) {
-  const value = visibility === "public" ? "public" : "private";
+async function getUsernameForChampion(championId) {
   const supabase = createAdminClient();
-  const { error } = await supabase
-    .from("champions")
-    .update({ profile_visibility: value })
-    .eq("id", championId);
+  const { data, error } = await supabase
+    .from("authentication")
+    .select("username")
+    .eq("champion_id", championId)
+    .maybeSingle();
   if (error) throw error;
-  return getMyProfile(championId);
+  return data?.username || null;
 }
 
 function campaignProgressPercent(chapters) {
@@ -197,15 +198,17 @@ export async function getPublicProfileCard(championId) {
   const id = Number(championId);
   if (!id || Number.isNaN(id)) return null;
 
+  const username = await getUsernameForChampion(id);
+  if (isHiddenUsername(username)) return null;
+
   const supabase = createAdminClient();
   const { data: champion, error } = await supabase
     .from("champions")
-    .select("id, name, title, xp, level, biography, profile_visibility")
+    .select("id, name, title, xp, level, biography")
     .eq("id", id)
     .maybeSingle();
   if (error) throw error;
   if (!champion) return null;
-  if ((champion.profile_visibility || "private") !== "public") return null;
 
   const [statistics, pins, { data: campaigns }] = await Promise.all([
     getOrCreateStatistics(id),
@@ -256,11 +259,18 @@ export async function listPublicChampions() {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("champions")
-    .select("id, name, title, level")
-    .eq("profile_visibility", "public")
+    .select("id, name, title, level, authentication!inner(username)")
     .order("level", { ascending: false });
   if (error) throw error;
-  return data ?? [];
+
+  return (data ?? [])
+    .filter((row) => {
+      const auth = Array.isArray(row.authentication)
+        ? row.authentication[0]
+        : row.authentication;
+      return !isHiddenUsername(auth?.username);
+    })
+    .map(({ id, name, title, level }) => ({ id, name, title, level }));
 }
 
 export async function listChampionAchievements(championId) {

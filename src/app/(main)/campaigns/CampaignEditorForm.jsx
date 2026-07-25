@@ -472,7 +472,13 @@ export default function CampaignEditorForm({
             </select>
           </label>
           <fieldset className="space-y-2">
-            <legend className="text-xs text-ash-400">Visibilidade</legend>
+            <legend className="text-xs text-ash-400">
+              Visibilidade da campanha
+            </legend>
+            <p className="text-xs text-ash-500">
+              Pública aparece no seu perfil em Campeões. Privada fica só com
+              você.
+            </p>
             <div className="flex flex-wrap gap-3 text-sm text-ash-300">
               <label className="flex items-center gap-2">
                 <input

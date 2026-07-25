@@ -11,6 +11,7 @@ import {
   fetchContinueState,
   actionCompleteStep,
 } from "../../services/requests";
+import FloatTimerButton from "@/components/pomodoro/FloatTimerButton";
 
 export default function TimerPanel() {
   const {
@@ -114,14 +115,14 @@ export default function TimerPanel() {
     <>
       <BusyRail active={Boolean(rail)} label={rail} />
       <div className="mx-auto max-w-lg space-y-6 pb-28 lg:pb-10">
-        <header data-tour="tour-timer-header" className="space-y-2">
+          <header data-tour="tour-timer-header" className="space-y-2">
           <p className="text-xs uppercase tracking-[0.22em] text-copper">
             Timer
           </p>
           <h1 className="font-display text-3xl text-ash-200">Pomodoro livre</h1>
           <p className="text-sm text-ash-400">
-            Foco e descanso no seu ritmo. A barra no topo acompanha mesmo se
-            você mudar de tela no Tobias.
+            Monte o bloco de foco e descanso do seu jeito. No PC, Flutuar deixa
+            o cronômetro sempre visível por cima dos outros apps.
           </p>
         </header>
 
@@ -154,7 +155,7 @@ export default function TimerPanel() {
           <div className="flex flex-wrap gap-2">
             {phase === "idle" || (!running && remaining === plannedSeconds) ? (
               <button type="button" className="btn-primary" onClick={startFree}>
-                Iniciar foco ({settings.focusMinutes} min)
+                Iniciar foco
               </button>
             ) : running ? (
               <button type="button" className="btn-primary" onClick={pause}>
@@ -168,21 +169,23 @@ export default function TimerPanel() {
 
             {phase === "focus" && !running && remaining === 0 && (
               <button type="button" className="btn-primary" onClick={startBreak}>
-                Iniciar descanso ({settings.breakMinutes} min)
+                Iniciar descanso
               </button>
             )}
 
             {phase !== "idle" && (
-              <button type="button" className="btn-ghost" onClick={stop}>
-                Encerrar
-              </button>
+              <>
+                <button type="button" className="btn-ghost" onClick={stop}>
+                  Encerrar
+                </button>
+                <FloatTimerButton phase={phase} />
+              </>
             )}
           </div>
           <p className="text-xs text-ash-400">
-            No PC (Chrome/Edge ou PWA): com o timer ativo, toque{" "}
-            <strong className="text-ash-300">Flutuar</strong> na barra do topo —
-            abre uma janelinha sempre por cima de outros programas. No celular,
-            mantenha o Tobias aberto; a barra no topo basta.
+            No PC (Chrome/Edge ou PWA), com o timer rodando: toque em{" "}
+            <strong className="text-ash-300">Flutuar</strong> para abrir a
+            janelinha por cima de tudo. No celular, deixe o Tobias aberto.
           </p>
         </section>
 
@@ -220,8 +223,9 @@ export default function TimerPanel() {
               />
             </label>
           </div>
-          <p className="text-xs text-ash-400">
-            Padrão clássico: 25 / 5. Você pode usar 50 / 10, 15 / 5, etc.
+          <p className="text-xs leading-relaxed text-ash-400">
+            O clássico é 25 de foco e 5 de descanso — mas o melhor ciclo é o que
+            você sustenta. Ajuste os minutos e teste o que encaixa no seu ritmo.
           </p>
         </section>
 

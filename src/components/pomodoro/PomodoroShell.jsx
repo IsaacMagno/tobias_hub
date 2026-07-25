@@ -1,13 +1,12 @@
 "use client";
 
 import { PomodoroProvider } from "./PomodoroProvider";
-import FloatingTimerBar from "./FloatingTimerBar";
+import { PipHost } from "./PipHost";
 
 export default function PomodoroShell({ children }) {
   return (
     <PomodoroProvider>
-      <FloatingTimerBar />
-      {children}
+      <PipHost>{children}</PipHost>
     </PomodoroProvider>
   );
 }

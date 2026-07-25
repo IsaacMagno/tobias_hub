@@ -47,6 +47,14 @@ export function PomodoroProvider({ children }) {
     setSettingsState(loadPomodoroSettings());
   }, []);
 
+  // Em idle, o relógio acompanha o foco configurado (ex.: 1:00, não 25:00).
+  useEffect(() => {
+    if (phase !== "idle" || running) return;
+    const sec = Math.max(1, Number(settings.focusMinutes) || 25) * 60;
+    setPlannedSeconds(sec);
+    setRemaining(sec);
+  }, [settings.focusMinutes, phase, running]);
+
   const clearTick = () => {
     if (tickRef.current) {
       clearInterval(tickRef.current);
@@ -119,15 +127,7 @@ export function PomodoroProvider({ children }) {
   }, [running, syncRemaining]);
 
   const setSettings = (patch) => {
-    setSettingsState((prev) => {
-      const next = savePomodoroSettings({ ...prev, ...patch });
-      if (phase === "idle" && !running) {
-        const sec = Math.max(1, next.focusMinutes) * 60;
-        setPlannedSeconds(sec);
-        setRemaining(sec);
-      }
-      return next;
-    });
+    setSettingsState((prev) => savePomodoroSettings({ ...prev, ...patch }));
   };
 
   const startPhase = useCallback(

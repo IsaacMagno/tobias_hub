@@ -5,7 +5,6 @@ import {
   getChampionByIdFull,
   updateChampionBiography,
   getMyProfile,
-  updateProfileVisibility,
   getPublicProfileCard,
   listPublicChampions,
   setChampionPins,
@@ -210,11 +209,6 @@ export async function actionUpdateChampionBio(championId, bio) {
   }
   await updateChampionBiography(championId, bio);
   return getMyProfile(championId);
-}
-
-export async function actionUpdateProfileVisibility(visibility) {
-  const session = await requireChampionSession();
-  return updateProfileVisibility(session.user.champion_id, visibility);
 }
 
 export async function fetchPublicProfile(championId) {

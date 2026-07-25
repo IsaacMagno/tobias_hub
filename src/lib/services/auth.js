@@ -121,7 +121,7 @@ export async function registerChampion({
         daystreakShield: 0,
         tobiasCoins: 0,
         achievementPoints: 0,
-        profile_visibility: "private",
+        profile_visibility: "public",
       })
       .select("id, name")
       .single();

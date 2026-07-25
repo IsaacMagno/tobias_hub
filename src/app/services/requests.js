@@ -27,7 +27,6 @@ export {
   actionRestoreCampaign,
   fetchMyProfile,
   actionUpdateChampionBio,
-  actionUpdateProfileVisibility,
   fetchPublicProfile,
   fetchPublicChampions,
   fetchSessionAnalytics,

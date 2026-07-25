@@ -39,7 +39,7 @@ export default function ChampionPublicPanel() {
     return (
       <div className="mx-auto max-w-2xl space-y-4 pb-28">
         <p className="text-sm text-ash-400">
-          Perfil privado ou inexistente.
+          Perfil indisponível ou inexistente.
         </p>
         <Link href="/champions" className="text-sm text-copper hover:underline">
           ← Campeões

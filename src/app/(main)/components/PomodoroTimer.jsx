@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { formatClock } from "@/lib/pomodoro/settings";
 import { usePomodoro } from "@/components/pomodoro/PomodoroProvider";
+import FloatTimerButton from "@/components/pomodoro/FloatTimerButton";
 
 /**
- * Timer do passo: usa o pomodoro global (barra flutuante + foco/descanso configuráveis).
+ * Timer do passo: usa o pomodoro global (foco/descanso + Flutuar no PC).
  * Minutos do passo têm prioridade no primeiro bloco de foco; senão usa settings.focusMinutes.
  */
 export default function PomodoroTimer({
@@ -139,10 +140,11 @@ export default function PomodoroTimer({
         >
           Resetar
         </button>
+        {isMine ? <FloatTimerButton phase={phase} /> : null}
       </div>
 
       <p className="text-xs text-ash-400">
-        Barra flutuante no topo enquanto roda. Ajuste 25/5 (ou outro) em{" "}
+        No PC, use Flutuar para o cronômetro por cima de outros apps. Tempos em{" "}
         <Link href="/timer" className="text-copper underline-offset-2 hover:underline">
           Timer
         </Link>

@@ -8,7 +8,6 @@ import StatsBars from "@/components/identity/StatsBars";
 import {
   fetchMyProfile,
   actionUpdateChampionBio,
-  actionUpdateProfileVisibility,
   actionSetChampionPins,
 } from "../../services/requests";
 
@@ -46,22 +45,6 @@ export default function ProfilePanel() {
       setTimeout(() => setRail(""), 1000);
     } catch (err) {
       toast.error(err.message || "Falha ao salvar");
-      setRail("");
-    }
-  };
-
-  const toggleVisibility = async () => {
-    if (!profile) return;
-    const next =
-      profile.profile_visibility === "public" ? "private" : "public";
-    setRail(next === "public" ? "Tornando público…" : "Tornando privado…");
-    try {
-      const data = await actionUpdateProfileVisibility(next);
-      setProfile(data);
-      setRail(next === "public" ? "Perfil público" : "Perfil privado");
-      setTimeout(() => setRail(""), 1200);
-    } catch (err) {
-      toast.error(err.message || "Falha");
       setRail("");
     }
   };
@@ -115,30 +98,18 @@ export default function ProfilePanel() {
         <p className="text-sm text-ash-400">
           Nv. {profile.level} · {Math.floor(profile.xp || 0)} XP
         </p>
+        <p className="text-sm text-ash-400">
+          Seu perfil é público. O que aparece para os outros são as{" "}
+          <strong className="font-medium text-ash-300">campanhas públicas</strong>
+          .{" "}
+          <Link
+            href={`/champions/${profile.id}`}
+            className="text-copper hover:underline"
+          >
+            Como os outros te veem →
+          </Link>
+        </p>
       </header>
-
-      <section data-tour="tour-profile-visibility" className="panel space-y-3 p-5">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-xs uppercase tracking-[0.18em] text-ash-400">
-            Visibilidade do perfil
-          </h2>
-          <button type="button" className="btn-ghost text-xs" onClick={toggleVisibility}>
-            {profile.profile_visibility === "public" ? "Público" : "Privado"} — tocar para alternar
-          </button>
-        </div>
-        {profile.profile_visibility === "public" ? (
-          <p className="text-sm text-ash-400">
-            Outros campeões podem te visitar.{" "}
-            <Link href={`/champions/${profile.id}`} className="text-copper hover:underline">
-              Como os outros te veem →
-            </Link>
-          </p>
-        ) : (
-          <p className="text-sm text-ash-500">
-            Perfil privado — não aparece em Campeões.
-          </p>
-        )}
-      </section>
 
       <section data-tour="tour-profile-attrs" className="panel space-y-4 p-5">
         <h2 className="text-xs uppercase tracking-[0.18em] text-ash-400">

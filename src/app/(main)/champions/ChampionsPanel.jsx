@@ -31,7 +31,7 @@ export default function ChampionsPanel() {
         </p>
         <h1 className="font-display text-3xl text-ash-200">Campeões</h1>
         <p className="text-sm text-ash-400">
-          Perfis públicos para visitar e se inspirar.
+          Visite outros e veja as campanhas que eles tornaram públicas.
         </p>
       </header>
 
@@ -43,7 +43,7 @@ export default function ChampionsPanel() {
         <div data-tour="tour-champions-list">
           {items.length === 0 ? (
             <p className="text-sm text-ash-500">
-              Ninguém público ainda. Torne seu perfil público em Perfil.
+              Ainda não há outros campeões por aqui.
             </p>
           ) : (
             <ul className="space-y-3">
