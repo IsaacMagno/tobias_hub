@@ -35,17 +35,15 @@ export default function AgendaReminder({
         !firedRef.current
       ) {
         firedRef.current = true;
-        unlockAudio()
-          .then(() =>
-            notifyAlarm({
-              title: "Hora da missão — Tobias",
-              body: missionTitle
-                ? `Despertador: ${missionTitle}`
-                : "Hora de continuar sua missão.",
-              tag: "tobias-agenda",
-            })
-          )
-          .catch(() => {});
+        unlockAudio().then(() =>
+          notifyAlarm({
+            title: "Hora da missão — Tobias",
+            body: missionTitle
+              ? `Despertador: ${missionTitle}`
+              : "Hora de continuar sua missão.",
+            tag: "tobias-agenda",
+          })
+        );
       }
       // reset flag after minute changes
       if (now.getMinutes() !== mm) firedRef.current = false;

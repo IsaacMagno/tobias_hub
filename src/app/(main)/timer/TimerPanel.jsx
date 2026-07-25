@@ -6,7 +6,7 @@ import toast from "react-hot-toast";
 import { BusyRail, Spinner } from "@/components/LoadingUI";
 import { formatClock } from "@/lib/pomodoro/settings";
 import { usePomodoro } from "@/components/pomodoro/PomodoroProvider";
-import { requestAlarmPermissions } from "@/lib/pomodoro/alarm";
+import { unlockAudio } from "@/lib/pomodoro/alarm";
 import {
   fetchContinueState,
   actionCompleteStep,
@@ -44,30 +44,18 @@ export default function TimerPanel() {
   }, []);
 
   useEffect(() => {
-    if (!pendingLog) return undefined;
+    if (!pendingLog) return;
     let cancelled = false;
-
-    const load = async () => {
-      if (typeof document !== "undefined" && document.visibilityState !== "visible") {
-        return;
-      }
+    (async () => {
       try {
         const state = await fetchContinueState();
         if (!cancelled) setContinueState(state);
       } catch {
         if (!cancelled) setContinueState(null);
       }
-    };
-
-    const onVis = () => {
-      if (document.visibilityState === "visible") void load();
-    };
-
-    void load();
-    document.addEventListener("visibilitychange", onVis);
+    })();
     return () => {
       cancelled = true;
-      document.removeEventListener("visibilitychange", onVis);
     };
   }, [pendingLog]);
 
@@ -77,16 +65,15 @@ export default function TimerPanel() {
       : 0;
 
   const enableNotifications = async () => {
+    await unlockAudio();
     if (!("Notification" in window)) {
       toast.error("Notificações não disponíveis neste browser");
       return;
     }
-    const { notification: perm } = await requestAlarmPermissions();
+    const perm = await Notification.requestPermission();
     setNotifState(perm);
     if (perm === "granted") {
       toast.success("Lembretes liberados");
-    } else if (perm === "unsupported") {
-      toast.error("Notificações não disponíveis neste browser");
     } else {
       toast.error("Permissão negada");
     }
@@ -166,12 +153,7 @@ export default function TimerPanel() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {phase === "break" && !running ? (
-              <button type="button" className="btn-primary" onClick={startBreak}>
-                Iniciar descanso
-              </button>
-            ) : phase === "idle" ||
-              (!running && remaining === plannedSeconds) ? (
+            {phase === "idle" || (!running && remaining === plannedSeconds) ? (
               <button type="button" className="btn-primary" onClick={startFree}>
                 Iniciar foco
               </button>
@@ -254,9 +236,10 @@ export default function TimerPanel() {
             Despertador / lembrete
           </h2>
           <p className="text-sm text-ash-400">
-            Com a tela bloqueada o Android costuma impedir o som do PWA. O Tobias
-            tenta avisar mesmo assim; ao desbloquear, o alarme toca de novo e a
-            tela recarrega sozinha para não travar.
+            No Android (PWA), o Tobias toca um alarme sonoro + notificação no fim
+            do bloco e no horário da missão em foco — enquanto o app instalado
+            estiver autorizado. Isso imita o despertador; não grava no app Relógio
+            do sistema (limitação do navegador).
           </p>
           <button type="button" className="btn-ghost" onClick={enableNotifications}>
             {notifState === "granted"

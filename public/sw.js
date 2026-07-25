@@ -1,12 +1,10 @@
-/* Tobias PWA — instalável + alarme agendado (backup com tela bloqueada) */
-const CACHE = "tobias-shell-v5";
+/* Tobias PWA — só o necessário para ser instalável; não intercepta navegação/API */
+const CACHE = "tobias-shell-v3";
 const PRECACHE = [
   "/manifest.webmanifest",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
 ];
-
-let alarmTimerId = null;
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -38,75 +36,32 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-self.addEventListener("message", (event) => {
-  const data = event.data || {};
-  if (data.type === "CANCEL_ALARM") {
-    if (alarmTimerId != null) {
-      clearTimeout(alarmTimerId);
-      alarmTimerId = null;
-    }
-    return;
-  }
-
-  if (data.type !== "SCHEDULE_ALARM") return;
-
-  if (alarmTimerId != null) {
-    clearTimeout(alarmTimerId);
-    alarmTimerId = null;
-  }
-
-  const delay = Math.max(0, Number(data.endsAt) - Date.now());
-  const title = data.title || "Tobias";
-  const body = data.body || "Bloco concluído.";
-  const tag = data.tag || "tobias-alarm";
-
-  // Mantém o SW vivo até o alarme (melhor esforço; SO pode matar antes).
-  event.waitUntil(
-    new Promise((resolve) => {
-      alarmTimerId = setTimeout(async () => {
-        alarmTimerId = null;
-        try {
-          await self.registration.showNotification(title, {
-            body,
-            tag,
-            renotify: true,
-            requireInteraction: true,
-            silent: false,
-            vibrate: [500, 200, 500, 200, 500, 200, 800],
-            data: { url: "/timer", kind: "alarm" },
-            badge: "/icons/icon-192.png",
-            icon: "/icons/icon-192.png",
-          });
-        } catch {
-          /* ignore */
-        }
-        resolve();
-      }, delay);
-    })
-  );
-});
+/* Sem listener de fetch: evita lentidão em pages/actions do Next */
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const target = event.notification?.data?.url || "/timer";
+  const target = event.notification?.data?.url || "/";
   event.waitUntil(
     (async () => {
-      try {
-        const all = await clients.matchAll({
-          type: "window",
-          includeUncontrolled: true,
-        });
-        for (const client of all) {
-          if ("focus" in client) {
-            await client.focus();
-            return;
+      const all = await clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      });
+      for (const client of all) {
+        if ("focus" in client) {
+          await client.focus();
+          if ("navigate" in client) {
+            try {
+              await client.navigate(target);
+            } catch {
+              /* ignore */
+            }
           }
+          return;
         }
-        if (clients.openWindow) {
-          await clients.openWindow(target);
-        }
-      } catch {
-        /* ignore */
+      }
+      if (clients.openWindow) {
+        await clients.openWindow(target);
       }
     })()
   );
