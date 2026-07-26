@@ -115,6 +115,74 @@ async function getMissionTree(missionId) {
   };
 }
 
+/** Minutos desde meia-noite (TZ do app) a partir de "HH:MM" / "HH:MM:SS". */
+function timeOfDayToMinutes(value) {
+  if (!value || typeof value !== "string") return null;
+  const m = value.trim().match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return null;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  if (!Number.isFinite(h) || !Number.isFinite(min)) return null;
+  return h * 60 + min;
+}
+
+function nowMinutesInTz(timeZone = process.env.TIMEZONE || "America/Sao_Paulo") {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date());
+  const hour = Number(parts.find((p) => p.type === "hour")?.value);
+  const minute = Number(parts.find((p) => p.type === "minute")?.value);
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) {
+    const d = new Date();
+    return d.getHours() * 60 + d.getMinutes();
+  }
+  return hour * 60 + minute;
+}
+
+/**
+ * Score para escolher missão quando não há foco manual:
+ * 1) agenda de hoje (weekdays específicos > “todo dia”)
+ * 2) horário mais próximo de agora
+ * 3) status / order_index
+ */
+function scoreMissionForFocus(mission, todayKey, nowMins) {
+  const days = Array.isArray(mission.weekdays) ? mission.weekdays : [];
+  const hasDays = days.length > 0;
+  const scheduledToday = !hasDays || days.includes(todayKey);
+  // Específicas (poucos dias) ganham das diárias / sem agenda
+  const specificity = hasDays ? Math.max(0, 7 - days.length) : 0;
+  const todMins = timeOfDayToMinutes(mission.time_of_day);
+  const proximity =
+    todMins == null || nowMins == null
+      ? 24 * 60
+      : Math.min(
+          Math.abs(todMins - nowMins),
+          24 * 60 - Math.abs(todMins - nowMins)
+        );
+
+  const statusRank = { active: 0, paused: 1, in_progress: 2, available: 3 };
+  return {
+    scheduledToday: scheduledToday ? 0 : 1,
+    specificity: -specificity,
+    proximity,
+    status: statusRank[mission.status] ?? 9,
+    order: mission.order_index ?? 0,
+  };
+}
+
+function compareFocusScores(a, b) {
+  return (
+    a.scheduledToday - b.scheduledToday ||
+    a.specificity - b.specificity ||
+    a.proximity - b.proximity ||
+    a.status - b.status ||
+    a.order - b.order
+  );
+}
+
 async function pickMissionId(championId) {
   const supabase = createAdminClient();
 
@@ -133,6 +201,8 @@ async function pickMissionId(championId) {
       id,
       status,
       order_index,
+      weekdays,
+      time_of_day,
       campaign_chapters!inner (
         campaign_id,
         campaigns!inner ( champion_id, status )
@@ -140,17 +210,21 @@ async function pickMissionId(championId) {
     `
     )
     .eq("campaign_chapters.campaigns.champion_id", championId)
+    .neq("campaign_chapters.campaigns.status", "archived")
     .in("status", ["active", "paused", "in_progress", "available"]);
 
   if (!rows?.length) return null;
 
-  const rank = { active: 0, paused: 1, in_progress: 2, available: 3 };
-  rows.sort(
-    (a, b) =>
-      (rank[a.status] ?? 9) - (rank[b.status] ?? 9) ||
-      a.order_index - b.order_index
+  const todayKey = todayWeekdayKey();
+  const nowMins = nowMinutesInTz();
+
+  const ranked = [...rows].sort((a, b) =>
+    compareFocusScores(
+      scoreMissionForFocus(a, todayKey, nowMins),
+      scoreMissionForFocus(b, todayKey, nowMins)
+    )
   );
-  return rows[0].id;
+  return ranked[0].id;
 }
 
 export async function getContinueState(championId) {

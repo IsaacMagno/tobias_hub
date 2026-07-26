@@ -18,6 +18,7 @@ export {
   actionResumeMission,
   fetchCampaignsDetailed,
   actionEnsureFinanceCampaign,
+  actionEnsureIsaacLifeCampaigns,
   actionCreateCampaign,
   fetchCampaignEditor,
   actionUpdateCampaignEditor,

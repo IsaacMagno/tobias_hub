@@ -32,6 +32,7 @@ import {
   archiveCampaign,
   restoreCampaign,
 } from "@/lib/services/campaigns";
+import { ensureIsaacLifeCampaigns } from "@/lib/services/isaacCampaigns";
 
 export async function doLogin(username, password) {
   const result = await loginChampion(username, password);
@@ -150,6 +151,12 @@ export async function actionEnsureFinanceCampaign() {
   const result = await ensureFinanceCampaign(session.user.champion_id);
   const items = await listCampaignsDetailed(session.user.champion_id);
   return { ...result, items };
+}
+
+/** Seed das 5 frentes de vida (Isaac / quem chamar). Idempotente por título. */
+export async function actionEnsureIsaacLifeCampaigns() {
+  const session = await requireChampionSession();
+  return ensureIsaacLifeCampaigns(session.user.champion_id);
 }
 
 export async function actionCreateCampaign(payload) {
