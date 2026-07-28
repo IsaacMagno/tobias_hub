@@ -34,4 +34,11 @@ export {
   actionSetChampionPins,
   fetchMyInvite,
   actionGenerateMyInvite,
+  fetchMyStreaks,
+  actionCreateHabitStreak,
+  actionUpdateHabitStreak,
+  actionDeleteHabitStreak,
+  actionMarkHabitStreakToday,
+  actionUnmarkHabitStreakToday,
+  actionSetHabitStreakCampaigns,
 } from "@/app/actions/tobias";

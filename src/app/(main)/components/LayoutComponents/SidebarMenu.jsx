@@ -18,6 +18,7 @@ const links = [
   { href: "/campaigns", label: "Campanhas" },
   { href: "/profile", label: "Perfil" },
   { href: "/analytics", label: "Atividade" },
+  { href: "/streaks", label: "Sequências" },
   { href: "/champions", label: "Campeões" },
 ];
 

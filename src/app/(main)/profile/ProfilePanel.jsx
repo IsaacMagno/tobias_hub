@@ -5,14 +5,17 @@ import Link from "next/link";
 import toast from "react-hot-toast";
 import { BusyRail, Spinner } from "@/components/LoadingUI";
 import StatsBars from "@/components/identity/StatsBars";
+import { StreakIconBadge } from "@/components/streaks/StreakIcon";
 import {
   fetchMyProfile,
+  fetchMyStreaks,
   actionUpdateChampionBio,
   actionSetChampionPins,
 } from "../../services/requests";
 
 export default function ProfilePanel() {
   const [profile, setProfile] = useState(null);
+  const [streaks, setStreaks] = useState([]);
   const [bio, setBio] = useState("");
   const [busy, setBusy] = useState(true);
   const [rail, setRail] = useState("");
@@ -21,8 +24,20 @@ export default function ProfilePanel() {
   const load = useCallback(async () => {
     setBusy(true);
     try {
-      const data = await fetchMyProfile();
+      const [data, streakItems] = await Promise.all([
+        fetchMyProfile(),
+        fetchMyStreaks(),
+      ]);
       setProfile(data);
+      setStreaks(
+        [...(streakItems || [])]
+          .sort(
+            (a, b) =>
+              (b.current_streak || 0) - (a.current_streak || 0) ||
+              String(b.updated_at).localeCompare(String(a.updated_at))
+          )
+          .slice(0, 3)
+      );
       setBio(data.biography || "");
       setPinDraft((data.pins || []).map((p) => Number(p.id)));
     } catch (err) {
@@ -116,6 +131,39 @@ export default function ProfilePanel() {
           Atributos
         </h2>
         <StatsBars statistics={profile.statistics} />
+      </section>
+
+      <section className="panel space-y-3 p-5">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-xs uppercase tracking-[0.18em] text-ash-400">
+            Sequências (privado)
+          </h2>
+          <Link href="/streaks" className="text-xs text-copper hover:underline">
+            Ver todas →
+          </Link>
+        </div>
+        {streaks.length === 0 ? (
+          <p className="text-sm text-ash-500">
+            Crie sequências para acompanhar hábitos e dias de evitação.
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {streaks.map((s) => (
+              <li
+                key={s.id}
+                className="flex items-center justify-between gap-3 border-b border-copper/10 pb-2 last:border-0"
+              >
+                <span className="flex items-center gap-2 text-sm text-ash-200">
+                  <StreakIconBadge icon={s.emoji} className="h-7 w-7" />
+                  {s.title}
+                </span>
+                <span className="font-display text-lg text-copper tabular-nums">
+                  {s.current_streak || 0}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <div data-tour="tour-profile-bio" className="space-y-6">

@@ -9,6 +9,7 @@ import {
   normalizePrimaryStat,
   STAT_SHORT,
 } from "@/lib/helpers/attributes";
+import { autoMarkFromCampaign } from "@/lib/services/habitStreaks";
 
 const WEEKDAY_KEYS = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
 
@@ -693,6 +694,14 @@ export async function completeStep(
     sessionUpdate,
     supabase.from("mission_steps").update({ status: "done" }).eq("id", stepId),
   ]);
+
+  if (tree.campaign?.id) {
+    try {
+      await autoMarkFromCampaign(championId, tree.campaign.id);
+    } catch {
+      /* streak auto-mark não deve bloquear conclusão do passo */
+    }
+  }
 
   const pending = (tree.steps ?? [])
     .filter((s) => s.id !== stepId && s.status === "pending")

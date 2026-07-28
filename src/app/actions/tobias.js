@@ -33,6 +33,15 @@ import {
   restoreCampaign,
 } from "@/lib/services/campaigns";
 import { ensureIsaacLifeCampaigns } from "@/lib/services/isaacCampaigns";
+import {
+  listMyStreaks,
+  createStreak,
+  updateStreak,
+  deleteStreak,
+  markStreakDay,
+  unmarkStreakDay,
+  setStreakCampaigns,
+} from "@/lib/services/habitStreaks";
 
 export async function doLogin(username, password) {
   const result = await loginChampion(username, password);
@@ -260,4 +269,47 @@ export async function actionGenerateMyInvite() {
       message: err?.message || "Não foi possível gerar o convite",
     };
   }
+}
+
+/* —— Streaks personalizadas —— */
+
+export async function fetchMyStreaks() {
+  const session = await requireChampionSession();
+  return listMyStreaks(session.user.champion_id);
+}
+
+export async function actionCreateHabitStreak(payload) {
+  const session = await requireChampionSession();
+  return createStreak(session.user.champion_id, payload || {});
+}
+
+export async function actionUpdateHabitStreak(streakId, payload) {
+  const session = await requireChampionSession();
+  return updateStreak(session.user.champion_id, Number(streakId), payload || {});
+}
+
+export async function actionDeleteHabitStreak(streakId) {
+  const session = await requireChampionSession();
+  return deleteStreak(session.user.champion_id, Number(streakId));
+}
+
+export async function actionMarkHabitStreakToday(streakId) {
+  const session = await requireChampionSession();
+  return markStreakDay(session.user.champion_id, Number(streakId), {
+    source: "manual",
+  });
+}
+
+export async function actionUnmarkHabitStreakToday(streakId) {
+  const session = await requireChampionSession();
+  return unmarkStreakDay(session.user.champion_id, Number(streakId));
+}
+
+export async function actionSetHabitStreakCampaigns(streakId, campaignIds) {
+  const session = await requireChampionSession();
+  return setStreakCampaigns(
+    session.user.champion_id,
+    Number(streakId),
+    campaignIds || []
+  );
 }
