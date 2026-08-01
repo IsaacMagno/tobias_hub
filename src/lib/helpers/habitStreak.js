@@ -108,8 +108,8 @@ export function computeStreakStats(
   }
 
   let shieldsToApply = [];
-  let shieldsLeft =
-    shieldsBalance - shieldSet.size + shieldsToApply.length;
+  // Saldo restante = escudos ainda não usados (gaps já gravados já foram pagos).
+  let shieldsLeft = Math.max(0, shieldsBalance);
 
   const tryBridgeGap = (gapDate) => {
     if (shieldSet.has(gapDate)) return true;
@@ -165,11 +165,20 @@ export function computeStreakStats(
 }
 
 /**
- * Escudos garantidos por marcos de sequência (1 base + bônus, máx. MAX_SHIELDS).
+ * Marcos de +1 escudo na sequência atual (a cada 7 dias).
+ * Ex.: 0–6 → 0, 7–13 → 1, 14–20 → 2 (depois o clamp do saldo limita a MAX).
+ */
+export function streakShieldMilestones(currentStreak) {
+  const n = Math.max(0, Number(currentStreak) || 0);
+  return Math.floor(n / SHIELD_EARN_INTERVAL);
+}
+
+/**
+ * @deprecated Preferir streakShieldMilestones + saldo persistido.
+ * Mantido só se algum caller antigo esperar “teto absoluto”.
  */
 export function shieldsEarnedForStreak(currentStreak) {
-  const bonus = Math.floor(currentStreak / SHIELD_EARN_INTERVAL);
-  return clampShields(1 + bonus);
+  return clampShields(1 + streakShieldMilestones(currentStreak));
 }
 
 export function clampShields(value) {

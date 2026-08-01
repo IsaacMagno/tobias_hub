@@ -16,6 +16,7 @@ const links = [
   { href: "/", label: "Continuar" },
   { href: "/timer", label: "Timer" },
   { href: "/campaigns", label: "Campanhas" },
+  { href: "/community", label: "Comunidade" },
   { href: "/profile", label: "Perfil" },
   { href: "/analytics", label: "Atividade" },
   { href: "/streaks", label: "Sequências" },

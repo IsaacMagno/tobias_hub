@@ -138,11 +138,6 @@ export default function StreakCalendar({ streak }) {
           <DayCell key={day.date ?? `future-${i}`} day={day} />
         ))}
       </div>
-
-      <p className="text-[11px] leading-relaxed text-ash-500">
-        Escudos cobrem 1 dia perdido sem zerar a sequência. Ganha +1 ao completar
-        7 dias seguidos (máx. 2 escudos).
-      </p>
     </div>
   );
 }

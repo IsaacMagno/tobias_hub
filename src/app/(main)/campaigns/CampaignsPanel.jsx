@@ -8,13 +8,10 @@ import { BusyRail, Spinner } from "@/components/LoadingUI";
 import {
   fetchCampaignsDetailed,
   actionFocusCampaign,
-  actionEnsureFinanceCampaign,
   actionArchiveCampaign,
   actionRestoreCampaign,
 } from "../../services/requests";
 import { labelCampaignStatus } from "@/lib/helpers/statusLabels";
-
-const FINANCE_TITLE = "Organizar finanças";
 
 export default function CampaignsPanel() {
   const router = useRouter();
@@ -49,7 +46,6 @@ export default function CampaignsPanel() {
   }, [filter, load]);
 
   const isArchivedView = filter === "archived";
-  const hasFinance = items.some((c) => c.title === FINANCE_TITLE);
 
   const visible = useMemo(() => {
     if (filter === "today") return items.filter((c) => c.scheduledToday);
@@ -71,23 +67,6 @@ export default function CampaignsPanel() {
       router.push("/");
     } catch (e) {
       toast.error(e.message || "Não foi possível ativar");
-      setBusyId(null);
-      setRailLabel("");
-    }
-  };
-
-  const addFinance = async () => {
-    setBusyId("finance");
-    setRailLabel("Preparando frente…");
-    try {
-      const res = await actionEnsureFinanceCampaign();
-      setItems(res.items);
-      setRailLabel(res.created ? "Frente adicionada" : "Já estava pronta");
-      await new Promise((r) => setTimeout(r, 1200));
-      setRailLabel("");
-      setBusyId(null);
-    } catch (e) {
-      toast.error(e.message || "Não foi possível adicionar");
       setBusyId(null);
       setRailLabel("");
     }
@@ -155,7 +134,11 @@ export default function CampaignsPanel() {
             <div className="space-y-1">
               <h1 className="font-display text-3xl text-ash-200">Campanhas</h1>
               <p className="text-sm text-ash-400">
-                Escolha uma frente para focar.
+                Suas frentes pessoais. Sugestões oficiais ficam em{" "}
+                <Link href="/community" className="text-copper hover:underline">
+                  Comunidade
+                </Link>
+                .
               </p>
             </div>
             {!isArchivedView && (
@@ -196,12 +179,17 @@ export default function CampaignsPanel() {
             <p className="text-sm text-ash-400">
               {isArchivedView
                 ? "Nenhuma frente arquivada."
-                : "Nenhuma campanha ainda. Vá em Continuar e prepare o demo."}
+                : "Nenhuma campanha ainda. Crie a sua ou aceite uma sugestão na Comunidade."}
             </p>
             {!isArchivedView && (
-              <Link href="/" className="btn-primary inline-flex">
-                Ir para Continuar
-              </Link>
+              <div className="flex flex-wrap gap-2">
+                <Link href="/community" className="btn-primary">
+                  Ir à Comunidade
+                </Link>
+                <Link href="/campaigns/new" className="btn-ghost">
+                  Nova frente
+                </Link>
+              </div>
             )}
           </div>
         ) : !visible.length ? (
@@ -373,30 +361,16 @@ export default function CampaignsPanel() {
           </ul>
         )}
 
-        {!isArchivedView && items.length > 0 && !hasFinance && (
-          <div className="panel space-y-3 border-dashed p-5">
-            <h2 className="font-display text-lg text-ash-200">
-              Nova frente · Finanças
-            </h2>
+        {!isArchivedView && (
+          <div className="panel space-y-3 border-dashed border-copper/30 bg-copper/5 p-5">
+            <h2 className="font-display text-lg text-ash-200">Comunidade</h2>
             <p className="text-sm text-ash-400">
-              Foto rápida do mês, uma regra só, e uma checagem semanal — sem
-              planilha infinita.
+              Protocolos oficiais, publicações da galera, desafios, Praça e
+              clãs — tudo em um só lugar.
             </p>
-            <button
-              type="button"
-              className="btn-ghost"
-              disabled={Boolean(busyId)}
-              onClick={addFinance}
-            >
-              {busyId === "finance" ? (
-                <>
-                  <Spinner />
-                  Preparando…
-                </>
-              ) : (
-                "Adicionar Organizar finanças"
-              )}
-            </button>
+            <Link href="/community" className="btn-primary inline-flex">
+              Abrir Comunidade
+            </Link>
           </div>
         )}
       </div>

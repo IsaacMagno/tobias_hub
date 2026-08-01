@@ -11,6 +11,7 @@ Aqui só entrou o que a nova visão precisa **agora**, mais uma pasta `refatorac
 ## Documentos
 
 - `VISION.md` — produto e MVP
+- `PRODUCT_STATUS.md` — inventário atual, público-alvo e alinhamento VISION/SPEC
 - `MVP_SCOPE.md` — escopo congelado
 - `IMPLEMENTATION_PLAN.md` — fila Cap. 2 → 4
 - `PROGRESSION_SPEC.md` — estados e regras

@@ -3,6 +3,7 @@
  * Idempotente por título da campanha.
  */
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createFullCampaign } from "@/lib/services/campaignFactory";
 
 const TITLES = {
   academia: "Academia — hipertrofia",
@@ -92,77 +93,6 @@ function readingCycleSteps(n) {
       planned_minutes: 5,
     },
   ];
-}
-
-async function insertSteps(supabase, missionId, steps) {
-  const { error } = await supabase.from("mission_steps").insert(
-    steps.map((s, i) => ({
-      mission_id: missionId,
-      surface: s.surface,
-      detail: s.detail ?? null,
-      planned_minutes: s.planned_minutes ?? null,
-      status: i === 0 ? "current" : "pending",
-      order_index: i,
-    }))
-  );
-  if (error) throw error;
-}
-
-async function createFullCampaign(supabase, championId, def) {
-  const now = new Date().toISOString();
-  const { data: campaign, error: cErr } = await supabase
-    .from("campaigns")
-    .insert({
-      champion_id: championId,
-      title: def.title,
-      status: "active",
-      result: def.result,
-      why: def.why,
-      primary_stat: def.primary_stat,
-      visibility: "private",
-      updated_at: now,
-    })
-    .select("id")
-    .single();
-  if (cErr) throw cErr;
-
-  for (let ci = 0; ci < def.chapters.length; ci++) {
-    const ch = def.chapters[ci];
-    const { data: chapter, error: chErr } = await supabase
-      .from("campaign_chapters")
-      .insert({
-        campaign_id: campaign.id,
-        title: ch.title,
-        status: ci === 0 ? "active" : "available",
-        objective: ch.objective || def.result,
-        order_index: ci,
-      })
-      .select("id")
-      .single();
-    if (chErr) throw chErr;
-
-    for (let mi = 0; mi < ch.missions.length; mi++) {
-      const m = ch.missions[mi];
-      const { data: mission, error: mErr } = await supabase
-        .from("missions")
-        .insert({
-          chapter_id: chapter.id,
-          title: m.title,
-          status: m.status || (ci === 0 ? "available" : "locked"),
-          why: m.why || null,
-          weekdays: m.weekdays || [],
-          time_of_day: m.time_of_day || null,
-          planned_minutes: m.planned_minutes ?? null,
-          order_index: mi,
-        })
-        .select("id")
-        .single();
-      if (mErr) throw mErr;
-      await insertSteps(supabase, mission.id, m.steps);
-    }
-  }
-
-  return campaign.id;
 }
 
 function isaacDefs() {

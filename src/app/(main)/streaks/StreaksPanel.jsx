@@ -300,18 +300,22 @@ export default function StreaksPanel() {
     <div className="mx-auto max-w-2xl space-y-6 pb-28 lg:pb-10">
       <BusyRail active={Boolean(rail)} label={rail} />
 
-      <header className="space-y-2">
+      <header data-tour="tour-streaks-header" className="space-y-2">
         <p className="text-xs uppercase tracking-[0.22em] text-copper">
           Identidade
         </p>
         <h1 className="font-display text-3xl text-ash-200">Sequências</h1>
         <p className="text-sm text-ash-400">
-          Privado — só você vê estas sequências. Marque cada dia para manter o
-          fogo aceso nos bons hábitos e nos que você quer evitar.
+          Marque cada dia para manter o fogo aceso nos bons hábitos e nos que
+          você quer evitar.
+        </p>
+        <p className="text-xs leading-relaxed text-ash-500">
+          Escudos cobrem 1 dia perdido sem zerar a sequência. Começa com 1;
+          ganha +1 a cada 7 dias seguidos (máx. 2).
         </p>
       </header>
 
-      <section className="flex flex-wrap gap-2">
+      <section data-tour="tour-streaks-new" className="flex flex-wrap gap-2">
         <button
           type="button"
           className="btn-primary"
@@ -348,7 +352,10 @@ export default function StreaksPanel() {
       )}
 
       {sortedStreaks.length === 0 && !showCreate ? (
-        <section className="panel space-y-3 p-5 text-sm text-ash-400">
+        <section
+          data-tour="tour-streaks-list"
+          className="panel space-y-3 p-5 text-sm text-ash-400"
+        >
           <p>Ainda sem sequências. Crie uma para começar — por exemplo:</p>
           <ul className="list-inside list-disc space-y-1 text-ash-500">
             <li>Leitura (30 min por dia)</li>
@@ -357,7 +364,7 @@ export default function StreaksPanel() {
           </ul>
         </section>
       ) : (
-        <ul className="space-y-4">
+        <ul data-tour="tour-streaks-list" className="space-y-4">
           {sortedStreaks.map((streak) => {
             const motiv = motivationalLine(streak);
             return (

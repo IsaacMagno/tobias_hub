@@ -7,7 +7,7 @@ import {
   computeStreakStats,
   isMarkedToday,
   clampShields,
-  shieldsEarnedForStreak,
+  streakShieldMilestones,
   MAX_SHIELDS,
 } from "@/lib/helpers/habitStreak";
 
@@ -118,12 +118,13 @@ async function syncStreakCounts(streakId) {
   const supabase = createAdminClient();
   const { data: row, error: rowErr } = await supabase
     .from("habit_streaks")
-    .select("shields")
+    .select("shields, current_streak")
     .eq("id", streakId)
     .single();
   if (rowErr) throw rowErr;
 
   let shieldsBalance = clampShields(row.shields ?? 1);
+  const prevCurrent = Math.max(0, Number(row.current_streak) || 0);
 
   const { current, best, shieldsToApply } = computeStreakStats(
     logDates,
@@ -131,6 +132,7 @@ async function syncStreakCounts(streakId) {
     { shieldGaps: existingShieldGaps, shieldsBalance }
   );
 
+  // 1) Gasta escudos nos gaps novos (2→1→0) — não repor automaticamente.
   const newGaps = shieldsToApply.filter(
     (g) => !existingShieldGaps.includes(g)
   );
@@ -141,10 +143,14 @@ async function syncStreakCounts(streakId) {
     shieldsBalance = clampShields(shieldsBalance - newGaps.length);
   }
 
-  const earned = shieldsEarnedForStreak(current);
-  const targetShields = clampShields(Math.max(shieldsBalance, earned));
-  if (targetShields !== shieldsBalance) {
-    shieldsBalance = targetShields;
+  // 2) Ganha +1 só ao cruzar marcos de 7 dias nesta sequência (máx. MAX_SHIELDS).
+  //    Ex.: 6→7 concede +1; sync de novo em 7 não concede. Escudo usado não “volta”.
+  if (current > prevCurrent) {
+    const gained =
+      streakShieldMilestones(current) - streakShieldMilestones(prevCurrent);
+    if (gained > 0) {
+      shieldsBalance = clampShields(shieldsBalance + gained);
+    }
   }
 
   const lastLogDate = logDates.length ? logDates[logDates.length - 1] : null;

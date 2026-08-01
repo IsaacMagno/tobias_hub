@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
@@ -12,6 +12,10 @@ import {
   fetchCampaignEditor,
   actionAddChapter,
   actionAddMission,
+  actionCreateCampaignShareCode,
+  fetchCampaignShareCodes,
+  actionSubmitCampaignToCommunity,
+  fetchCampaignCommunitySubmission,
 } from "../../services/requests";
 import {
   labelChapterStatus,
@@ -93,6 +97,11 @@ export default function CampaignEditorForm({
   const [dependsOnPrevious, setDependsOnPrevious] = useState(true);
   const [showAddChapter, setShowAddChapter] = useState(false);
   const [showAddMission, setShowAddMission] = useState(false);
+  const [shareCodes, setShareCodes] = useState([]);
+  const [shareBusy, setShareBusy] = useState(false);
+  const [communitySubmission, setCommunitySubmission] = useState(null);
+  const [communityBlurb, setCommunityBlurb] = useState("");
+  const [communityBusy, setCommunityBusy] = useState(false);
 
   const canSubmit = useMemo(() => {
     const hasTitle = form.title.trim().length > 0;
@@ -143,6 +152,77 @@ export default function CampaignEditorForm({
       [next[index], next[j]] = [next[j], next[index]];
       return { ...prev, steps: next };
     });
+  };
+
+  const loadShareCodes = async () => {
+    if (!campaignId || mode !== "edit") return;
+    try {
+      const codes = await fetchCampaignShareCodes(campaignId);
+      setShareCodes(codes || []);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const loadCommunitySubmission = async () => {
+    if (!campaignId || mode !== "edit") return;
+    try {
+      const sub = await fetchCampaignCommunitySubmission(campaignId);
+      setCommunitySubmission(sub);
+      if (sub?.blurb) setCommunityBlurb(sub.blurb);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const generateShareCode = async () => {
+    if (!campaignId || shareBusy) return;
+    setShareBusy(true);
+    try {
+      const created = await actionCreateCampaignShareCode(campaignId);
+      setShareCodes((prev) => [created, ...prev].slice(0, 5));
+      try {
+        await navigator.clipboard.writeText(created.code);
+        toast.success(`Código ${created.code} copiado`);
+      } catch {
+        toast.success(`Código: ${created.code}`);
+      }
+    } catch (err) {
+      toast.error(err.message || "Falha ao gerar código");
+    } finally {
+      setShareBusy(false);
+    }
+  };
+
+  const submitToCommunity = async () => {
+    if (!campaignId || communityBusy) return;
+    setCommunityBusy(true);
+    try {
+      const sub = await actionSubmitCampaignToCommunity(
+        campaignId,
+        communityBlurb
+      );
+      setCommunitySubmission(sub);
+      toast.success("Enviado para revisão da Comunidade");
+    } catch (err) {
+      toast.error(err.message || "Falha ao enviar");
+    } finally {
+      setCommunityBusy(false);
+    }
+  };
+
+  useEffect(() => {
+    if (mode === "edit" && campaignId) {
+      loadShareCodes();
+      loadCommunitySubmission();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, campaignId]);
+
+  const communityStatusLabel = {
+    pending: "Em revisão",
+    approved: "Aprovada na Comunidade",
+    rejected: "Rejeitada",
   };
 
   const flash = async (label, ms = 1200) => {
@@ -667,6 +747,128 @@ export default function CampaignEditorForm({
             ))}
           </ul>
         </section>
+
+        {mode === "edit" && campaignId && (
+          <section data-tour="tour-editor-share" className="panel space-y-3 p-5">
+            <h2 className="text-xs uppercase tracking-[0.18em] text-ash-400">
+              Convidar amigo
+            </h2>
+            <p className="text-sm text-ash-400">
+              Gere um código. Quem resgatar recebe uma cópia privada desta
+              campanha.
+            </p>
+            <button
+              type="button"
+              className="btn-ghost"
+              disabled={shareBusy || busy}
+              onClick={generateShareCode}
+            >
+              {shareBusy ? (
+                <>
+                  <Spinner />
+                  Gerando…
+                </>
+              ) : (
+                "Gerar código"
+              )}
+            </button>
+            {shareCodes.length > 0 && (
+              <ul className="space-y-1.5 text-sm text-ash-300">
+                {shareCodes.map((c) => (
+                  <li
+                    key={c.id || c.code}
+                    className="flex flex-wrap items-center justify-between gap-2 border-b border-copper/10 pb-1.5"
+                  >
+                    <code className="text-copper">{c.code}</code>
+                    <span className="text-xs text-ash-500">
+                      {c.useCount ?? 0}/{c.maxUses ?? 10} usos
+                    </span>
+                    <button
+                      type="button"
+                      className="btn-ghost text-xs"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(c.code);
+                          toast.success("Copiado");
+                        } catch {
+                          toast.error("Não foi possível copiar");
+                        }
+                      }}
+                    >
+                      Copiar
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
+
+        {mode === "edit" && campaignId && (
+          <section
+            data-tour="tour-editor-publish"
+            className="panel space-y-3 p-5"
+          >
+            <h2 className="text-xs uppercase tracking-[0.18em] text-ash-400">
+              Enviar para Comunidade
+            </h2>
+            <p className="text-sm text-ash-400">
+              Um moderador revisa antes de aparecer no catálogo. O snapshot
+              congela a árvore no momento do envio.
+            </p>
+            {communitySubmission?.status ? (
+              <div className="space-y-2 text-sm">
+                <p className="text-ash-200">
+                  Status:{" "}
+                  <span className="text-copper">
+                    {communityStatusLabel[communitySubmission.status] ||
+                      communitySubmission.status}
+                  </span>
+                </p>
+                {communitySubmission.reviewerNote ? (
+                  <p className="text-ash-500">
+                    Nota: {communitySubmission.reviewerNote}
+                  </p>
+                ) : null}
+                {communitySubmission.status === "rejected" ? (
+                  <p className="text-xs text-ash-500">
+                    Você pode ajustar a campanha e enviar de novo com um novo
+                    resumo.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+            {(!communitySubmission ||
+              communitySubmission.status === "rejected") && (
+              <>
+                <textarea
+                  className="input-field min-h-[88px] resize-y"
+                  value={communityBlurb}
+                  onChange={(e) => setCommunityBlurb(e.target.value)}
+                  placeholder="Resumo para a comunidade (mín. 10 caracteres)"
+                  maxLength={280}
+                />
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  disabled={
+                    communityBusy || busy || communityBlurb.trim().length < 10
+                  }
+                  onClick={submitToCommunity}
+                >
+                  {communityBusy ? (
+                    <>
+                      <Spinner />
+                      Enviando…
+                    </>
+                  ) : (
+                    "Enviar para revisão"
+                  )}
+                </button>
+              </>
+            )}
+          </section>
+        )}
 
         <div data-tour="tour-editor-save" className="space-y-3">
           {mode === "create" && (

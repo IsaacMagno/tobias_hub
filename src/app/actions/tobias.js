@@ -42,6 +42,43 @@ import {
   unmarkStreakDay,
   setStreakCampaigns,
 } from "@/lib/services/habitStreaks";
+import {
+  listSuggestedCampaigns,
+  acceptSuggestedCampaign,
+} from "@/lib/services/campaignSuggestions";
+import {
+  createShareCode,
+  listShareCodesForCampaign,
+  redeemShareCode,
+} from "@/lib/services/campaignShares";
+import {
+  submitCampaignToCommunity,
+  getSubmissionForCampaign,
+  listPendingSubmissions,
+  listApprovedCommunityCampaigns,
+  reviewSubmission,
+  acceptCommunitySubmission,
+  isCommunityModerator,
+} from "@/lib/services/communitySubmissions";
+import {
+  createPlazaPost,
+  listPlazaPosts,
+  listMyPlazaCampaignOptions,
+} from "@/lib/services/plaza";
+import {
+  listChallenges,
+  joinChallenge,
+  checkinChallenge,
+  getChallengeStats,
+} from "@/lib/services/communityChallenges";
+import { listMilestoneBanners } from "@/lib/services/communityMilestones";
+import {
+  createClan,
+  joinClanByCode,
+  listMyClans,
+  clanCheckin,
+  listClanProtocolOptions,
+} from "@/lib/services/communityClans";
 
 export async function doLogin(username, password) {
   const result = await loginChampion(username, password);
@@ -312,4 +349,168 @@ export async function actionSetHabitStreakCampaigns(streakId, campaignIds) {
     Number(streakId),
     campaignIds || []
   );
+}
+
+/* —— Sugestões de campanha (catálogo oficial) —— */
+
+export async function fetchSuggestedCampaigns() {
+  const session = await requireChampionSession();
+  return listSuggestedCampaigns(session.user.champion_id);
+}
+
+export async function actionAcceptSuggestedCampaign(templateId) {
+  const session = await requireChampionSession();
+  return acceptSuggestedCampaign(session.user.champion_id, String(templateId));
+}
+
+/* —— Compartilhar campanha por código —— */
+
+export async function actionCreateCampaignShareCode(campaignId) {
+  const session = await requireChampionSession();
+  return createShareCode(session.user.champion_id, Number(campaignId));
+}
+
+export async function fetchCampaignShareCodes(campaignId) {
+  const session = await requireChampionSession();
+  return listShareCodesForCampaign(
+    session.user.champion_id,
+    Number(campaignId)
+  );
+}
+
+export async function actionRedeemCampaignShareCode(code) {
+  const session = await requireChampionSession();
+  return redeemShareCode(session.user.champion_id, code);
+}
+
+/* —— Publicação na Comunidade —— */
+
+export async function actionSubmitCampaignToCommunity(campaignId, blurb) {
+  const session = await requireChampionSession();
+  return submitCampaignToCommunity(
+    session.user.champion_id,
+    Number(campaignId),
+    blurb
+  );
+}
+
+export async function fetchCampaignCommunitySubmission(campaignId) {
+  const session = await requireChampionSession();
+  return getSubmissionForCampaign(
+    session.user.champion_id,
+    Number(campaignId)
+  );
+}
+
+export async function fetchPendingCommunitySubmissions() {
+  const session = await requireChampionSession();
+  return listPendingSubmissions(session.user.champion_id);
+}
+
+export async function fetchApprovedCommunityCampaigns() {
+  const session = await requireChampionSession();
+  return listApprovedCommunityCampaigns(session.user.champion_id);
+}
+
+export async function actionReviewCommunitySubmission(
+  submissionId,
+  decision,
+  note
+) {
+  const session = await requireChampionSession();
+  return reviewSubmission(
+    session.user.champion_id,
+    Number(submissionId),
+    decision,
+    note
+  );
+}
+
+export async function actionAcceptCommunitySubmission(submissionId) {
+  const session = await requireChampionSession();
+  return acceptCommunitySubmission(
+    session.user.champion_id,
+    Number(submissionId)
+  );
+}
+
+export async function fetchAmICommunityModerator() {
+  const session = await requireChampionSession();
+  return { isModerator: isCommunityModerator(session.user.champion_id) };
+}
+
+/* —— Praça —— */
+
+export async function actionCreatePlazaPost(body, campaignId) {
+  const session = await requireChampionSession();
+  return createPlazaPost(session.user.champion_id, {
+    body,
+    campaignId: campaignId ? Number(campaignId) : null,
+  });
+}
+
+export async function fetchPlazaPosts(before) {
+  await requireChampionSession();
+  return listPlazaPosts({ limit: 30, before: before || null });
+}
+
+export async function fetchMyPlazaCampaignOptions() {
+  const session = await requireChampionSession();
+  return listMyPlazaCampaignOptions(session.user.champion_id);
+}
+
+/* —— Desafios —— */
+
+export async function fetchCommunityChallenges() {
+  const session = await requireChampionSession();
+  return listChallenges(session.user.champion_id);
+}
+
+export async function actionJoinCommunityChallenge(challengeId) {
+  const session = await requireChampionSession();
+  return joinChallenge(session.user.champion_id, Number(challengeId));
+}
+
+export async function actionCheckinCommunityChallenge(challengeId) {
+  const session = await requireChampionSession();
+  return checkinChallenge(session.user.champion_id, Number(challengeId));
+}
+
+export async function fetchCommunityChallengeStats(challengeId) {
+  const session = await requireChampionSession();
+  return getChallengeStats(session.user.champion_id, Number(challengeId));
+}
+
+/* —— Marcos —— */
+
+export async function fetchCommunityMilestoneBanners() {
+  await requireChampionSession();
+  return listMilestoneBanners();
+}
+
+/* —— Clãs —— */
+
+export async function fetchMyClans() {
+  const session = await requireChampionSession();
+  return listMyClans(session.user.champion_id);
+}
+
+export async function fetchClanProtocolOptions() {
+  const session = await requireChampionSession();
+  return listClanProtocolOptions(session.user.champion_id);
+}
+
+export async function actionCreateClan(name, protocolRef) {
+  const session = await requireChampionSession();
+  return createClan(session.user.champion_id, { name, protocolRef });
+}
+
+export async function actionJoinClanByCode(code) {
+  const session = await requireChampionSession();
+  return joinClanByCode(session.user.champion_id, code);
+}
+
+export async function actionClanCheckin(clanId) {
+  const session = await requireChampionSession();
+  return clanCheckin(session.user.champion_id, Number(clanId));
 }
