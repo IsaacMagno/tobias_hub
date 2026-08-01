@@ -208,11 +208,6 @@ const Login = () => {
             <p className="font-display text-[2.35rem] leading-none tracking-wide text-ash-200 drop-shadow-[0_2px_18px_rgba(0,0,0,0.65)]">
               Tobias
             </p>
-            {mode === "login" ? (
-              <p className="mt-2 text-sm text-ash-300/90">
-                Continue de onde parou
-              </p>
-            ) : null}
           </div>
         </div>
 
@@ -223,9 +218,6 @@ const Login = () => {
               <h1 className="font-display text-xl text-ash-200">
                 {mode === "login" ? "Entrar" : "Criar conta"}
               </h1>
-              {mode === "login" ? (
-                <p className="text-sm text-ash-400">Uma missão por vez.</p>
-              ) : null}
             </div>
             {formFields}
             <div className="pt-1">
@@ -264,11 +256,6 @@ const Login = () => {
               <h1 className="font-display text-2xl text-ash-200">
                 {mode === "login" ? "Entrar" : "Criar conta"}
               </h1>
-              {mode === "login" ? (
-                <p className="text-sm text-ash-400">
-                  Continue de onde parou — uma missão por vez.
-                </p>
-              ) : null}
             </div>
             {formFields}
             <InstallAppButton />
