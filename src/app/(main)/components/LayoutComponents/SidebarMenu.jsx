@@ -85,7 +85,7 @@ const SidebarMenu = () => {
           ) : null}
           <InstallAppButton />
           <div className="flex items-center justify-between gap-2">
-            <p className="text-[10px] leading-relaxed text-ink-600">
+            <p className="text-[10px] leading-relaxed text-ash-600">
               Guia de progressão
             </p>
             <SettingsTrigger onClick={() => setSettingsOpen(true)} />

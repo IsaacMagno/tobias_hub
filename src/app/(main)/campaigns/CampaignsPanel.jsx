@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import EmptyState from "@/components/EmptyState";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { BusyRail, Spinner } from "@/components/LoadingUI";
@@ -175,28 +176,33 @@ export default function CampaignsPanel() {
         </div>
 
         {!items.length ? (
-          <div className="panel space-y-3 p-5">
-            <p className="text-sm text-ash-400">
-              {isArchivedView
-                ? "Nenhuma frente arquivada."
-                : "Nenhuma campanha ainda. Crie a sua ou aceite uma sugestão na Comunidade."}
-            </p>
-            {!isArchivedView && (
-              <div className="flex flex-wrap gap-2">
-                <Link href="/community" className="btn-primary">
-                  Ir à Comunidade
-                </Link>
-                <Link href="/campaigns/new" className="btn-ghost">
-                  Nova frente
-                </Link>
-              </div>
-            )}
+          <div className="panel p-5">
+            <EmptyState
+              compact={isArchivedView}
+              title={
+                isArchivedView ? "Nenhuma frente arquivada" : "Nenhuma campanha ainda"
+              }
+              hint={
+                isArchivedView
+                  ? null
+                  : "Crie a sua ou aceite uma sugestão na Comunidade."
+              }
+            >
+              {!isArchivedView && (
+                <>
+                  <Link href="/community" className="btn-primary">
+                    Ir à Comunidade
+                  </Link>
+                  <Link href="/campaigns/new" className="btn-ghost">
+                    Nova frente
+                  </Link>
+                </>
+              )}
+            </EmptyState>
           </div>
         ) : !visible.length ? (
           <div className="panel p-5">
-            <p className="text-sm text-ash-400">
-              Nenhuma frente agenda para hoje.
-            </p>
+            <EmptyState compact title="Nenhuma frente agendada para hoje" />
           </div>
         ) : (
           <ul className="space-y-3">

@@ -5,6 +5,7 @@ import Link from "next/link";
 import toast from "react-hot-toast";
 import PomodoroTimer from "./PomodoroTimer";
 import { BusyRail, ContinueSkeleton, Spinner } from "@/components/LoadingUI";
+import EmptyState from "@/components/EmptyState";
 import AgendaReminder from "@/components/pomodoro/AgendaReminder";
 import { unlockAudio } from "@/lib/pomodoro/alarm";
 import {
@@ -23,6 +24,8 @@ import {
   isTourDone,
   markTourDone,
 } from "@/lib/onboarding/tours";
+
+const STEPS_PER_PAGE = 5;
 
 function StepRow({ step, open, onToggle }) {
   const isCurrent = step.status === "current";
@@ -82,13 +85,14 @@ function ActionButton({
   busyText,
   children,
   disabled,
+  className = "",
   ...props
 }) {
   const cls = variant === "primary" ? "btn-primary" : "btn-ghost";
   return (
     <button
       type="button"
-      className={cls}
+      className={`${cls} ${className}`}
       disabled={disabled || busy}
       {...props}
     >
@@ -114,6 +118,7 @@ export default function ContinuePanel() {
   const [pauseOpen, setPauseOpen] = useState(false);
   const [pauseNote, setPauseNote] = useState("");
   const [timerEpoch, setTimerEpoch] = useState(0);
+  const [stepsPage, setStepsPage] = useState(0);
   const sessionIdRef = useRef(null);
   const elapsedRef = useRef(0);
   const railTimerRef = useRef(null);
@@ -168,6 +173,18 @@ export default function ContinuePanel() {
       if (railTimerRef.current) clearTimeout(railTimerRef.current);
     };
   }, []);
+
+  // Mantém a página na faixa do passo atual (não mostra o fim da missão cedo demais)
+  useEffect(() => {
+    const steps = state?.steps;
+    if (!steps?.length) {
+      setStepsPage(0);
+      return;
+    }
+    const currentIdx = steps.findIndex((s) => s.status === "current");
+    const focusIdx = currentIdx >= 0 ? currentIdx : 0;
+    setStepsPage(Math.floor(focusIdx / STEPS_PER_PAGE));
+  }, [state?.mission?.id, state?.currentStep?.id, state?.steps]);
 
   const withBusy = async (label, fn, { doneLabel } = {}) => {
     if (railTimerRef.current) clearTimeout(railTimerRef.current);
@@ -303,12 +320,14 @@ export default function ContinuePanel() {
             </p>
             <h1 className="font-display text-3xl text-ash-200">Continuar</h1>
           </header>
-          <div data-tour="tour-continue-empty" className="space-y-4">
-            <p className="leading-relaxed text-ash-400">
-              {state?.message ||
-                "Ainda não há campanha em foco. Crie a sua primeira frente — ou use o demo para testar o motor."}
-            </p>
-            <div className="flex flex-wrap gap-2">
+          <div data-tour="tour-continue-empty">
+            <EmptyState
+              title="Nenhuma frente em foco"
+              hint={
+                state?.message ||
+                "Crie a sua primeira frente — ou use o demo para testar o motor."
+              }
+            >
               {hasCampaigns ? (
                 <Link href="/campaigns" className="btn-primary inline-flex">
                   Abrir Campanhas
@@ -328,7 +347,7 @@ export default function ContinuePanel() {
                   </ActionButton>
                 </>
               )}
-            </div>
+            </EmptyState>
           </div>
         </div>
       </>
@@ -340,6 +359,21 @@ export default function ContinuePanel() {
   const planned =
     current?.planned_minutes || state.mission?.planned_minutes || 25;
   const isPaused = state.mission.status === "paused";
+  const allSteps = state.steps || [];
+  const stepsTotalPages = Math.max(
+    1,
+    Math.ceil(allSteps.length / STEPS_PER_PAGE)
+  );
+  const safeStepsPage = Math.min(stepsPage, stepsTotalPages - 1);
+  const pagedSteps = allSteps.slice(
+    safeStepsPage * STEPS_PER_PAGE,
+    safeStepsPage * STEPS_PER_PAGE + STEPS_PER_PAGE
+  );
+  const pageFrom = safeStepsPage * STEPS_PER_PAGE + 1;
+  const pageTo = Math.min(
+    (safeStepsPage + 1) * STEPS_PER_PAGE,
+    allSteps.length
+  );
 
   return (
     <>
@@ -351,7 +385,7 @@ export default function ContinuePanel() {
       />
       <BusyRail active={rail.active} label={rail.label} />
       <div
-        className={`mx-auto flex w-full max-w-3xl flex-col gap-6 pb-24 transition-opacity lg:pb-8 ${
+        className={`mx-auto flex w-full max-w-3xl flex-col gap-6 pb-36 transition-opacity sm:pb-24 lg:max-w-4xl lg:pb-8 ${
           busy ? "opacity-80" : "opacity-100"
         }`}
       >
@@ -379,7 +413,7 @@ export default function ContinuePanel() {
           )}
           <p className="text-xs text-ash-400">
             <span className="text-ash-300">{state.campaign.title}</span>
-            <span className="mx-2 text-ink-600">/</span>
+            <span className="mx-2 text-ash-600">/</span>
             {state.chapter.title}
           </p>
           {state.agendaToday && state.agendaLabel && (
@@ -467,7 +501,7 @@ export default function ContinuePanel() {
             )}
 
             <ol className="space-y-2">
-              {state.steps.map((step) => (
+              {pagedSteps.map((step) => (
                 <StepRow
                   key={step.id}
                   step={step}
@@ -479,9 +513,36 @@ export default function ContinuePanel() {
               ))}
             </ol>
 
+            {allSteps.length > STEPS_PER_PAGE ? (
+              <div className="flex items-center justify-between gap-2 pt-1">
+                <button
+                  type="button"
+                  className="btn-ghost px-3 py-1.5 text-xs"
+                  disabled={safeStepsPage <= 0 || busy}
+                  onClick={() => setStepsPage((p) => Math.max(0, p - 1))}
+                >
+                  ← Anterior
+                </button>
+                <p className="text-[11px] tabular-nums text-ash-400">
+                  {pageFrom}–{pageTo} de {allSteps.length}
+                </p>
+                <button
+                  type="button"
+                  className="btn-ghost px-3 py-1.5 text-xs"
+                  disabled={safeStepsPage >= stepsTotalPages - 1 || busy}
+                  onClick={() =>
+                    setStepsPage((p) => Math.min(stepsTotalPages - 1, p + 1))
+                  }
+                >
+                  Próximos →
+                </button>
+              </div>
+            ) : null}
+
             <div className="flex flex-wrap gap-2 pt-1">
               {isPaused ? (
                 <ActionButton
+                  className="hidden sm:inline-flex"
                   busy={busy}
                   busyText="Retomando…"
                   onClick={handleResume}
@@ -490,6 +551,7 @@ export default function ContinuePanel() {
                 </ActionButton>
               ) : (
                 <ActionButton
+                  className="hidden sm:inline-flex"
                   busy={busy}
                   busyText="Concluindo…"
                   disabled={!current}
@@ -562,6 +624,30 @@ export default function ContinuePanel() {
             />
           </div>
         </div>
+      </div>
+
+      {/* CTA fixo na zona do polegar (só mobile) */}
+      <div className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-40 bg-gradient-to-t from-ink-950 via-ink-950/85 to-transparent px-4 pb-3 pt-8 sm:hidden">
+        {isPaused ? (
+          <ActionButton
+            className="w-full shadow-lg shadow-black/40"
+            busy={busy}
+            busyText="Retomando…"
+            onClick={handleResume}
+          >
+            Retomar missão
+          </ActionButton>
+        ) : (
+          <ActionButton
+            className="w-full shadow-lg shadow-black/40"
+            busy={busy}
+            busyText="Concluindo…"
+            disabled={!current}
+            onClick={handleComplete}
+          >
+            Concluir passo
+          </ActionButton>
+        )}
       </div>
     </>
   );

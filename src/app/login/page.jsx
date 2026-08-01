@@ -231,7 +231,7 @@ const Login = () => {
             <div className="pt-1">
               <InstallAppButton />
             </div>
-            <p className="pt-2 text-center text-[11px] text-ink-600">
+            <p className="pt-2 text-center text-[11px] text-ash-600">
               © {new Date().getFullYear()} Tobias
             </p>
           </div>
@@ -272,7 +272,7 @@ const Login = () => {
             </div>
             {formFields}
             <InstallAppButton />
-            <p className="text-center text-[11px] text-ink-600">
+            <p className="text-center text-[11px] text-ash-600">
               © {new Date().getFullYear()} Tobias
             </p>
           </div>

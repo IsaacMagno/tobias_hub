@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { BusyRail, Spinner } from "@/components/LoadingUI";
+import EmptyState from "@/components/EmptyState";
 import StreakIconPicker from "@/components/streaks/StreakIconPicker";
 import { StreakIconBadge } from "@/components/streaks/StreakIcon";
 import StreakCalendar from "@/components/streaks/StreakCalendar";
@@ -352,16 +353,11 @@ export default function StreaksPanel() {
       )}
 
       {sortedStreaks.length === 0 && !showCreate ? (
-        <section
-          data-tour="tour-streaks-list"
-          className="panel space-y-3 p-5 text-sm text-ash-400"
-        >
-          <p>Ainda sem sequências. Crie uma para começar — por exemplo:</p>
-          <ul className="list-inside list-disc space-y-1 text-ash-500">
-            <li>Leitura (30 min por dia)</li>
-            <li>Corrida ou pular corda</li>
-            <li>Dias sem junk food</li>
-          </ul>
+        <section data-tour="tour-streaks-list" className="panel p-5">
+          <EmptyState
+            title="Ainda sem sequências"
+            hint="Crie uma para começar — por exemplo: leitura diária, corrida ou dias sem junk food."
+          />
         </section>
       ) : (
         <ul data-tour="tour-streaks-list" className="space-y-4">

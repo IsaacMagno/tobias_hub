@@ -5,6 +5,7 @@ import Link from "next/link";
 import toast from "react-hot-toast";
 import { BusyRail, Spinner } from "@/components/LoadingUI";
 import StatsBars from "@/components/identity/StatsBars";
+import { OrnamentDivider } from "@/components/EmptyState";
 import { StreakIconBadge } from "@/components/streaks/StreakIcon";
 import {
   fetchMyProfile,
@@ -125,6 +126,8 @@ export default function ProfilePanel() {
           </Link>
         </p>
       </header>
+
+      <OrnamentDivider />
 
       <section data-tour="tour-profile-attrs" className="panel space-y-4 p-5">
         <h2 className="text-xs uppercase tracking-[0.18em] text-ash-400">

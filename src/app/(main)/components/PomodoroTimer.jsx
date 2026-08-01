@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { formatClock } from "@/lib/pomodoro/settings";
 import { usePomodoro } from "@/components/pomodoro/PomodoroProvider";
@@ -73,6 +74,26 @@ export default function PomodoroTimer({
   // resetKey change: stop mission timer if this step changed
   // (parent remounts with key anyway)
 
+  // Espaço inicia/pausa/continua o foco (fora de inputs e botões)
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.code !== "Space" || e.repeat || disabled) return;
+      const t = e.target;
+      if (
+        t?.closest?.(
+          "input, textarea, select, button, a, [contenteditable='true']"
+        )
+      )
+        return;
+      e.preventDefault();
+      if (!isMine || (!running && remaining === plannedSeconds)) start();
+      else if (running) handlePause();
+      else if (remaining > 0) resume();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
   return (
     <div
       className={`panel space-y-4 p-5 ${className} ${
@@ -144,6 +165,9 @@ export default function PomodoroTimer({
       </div>
 
       <p className="text-xs text-ash-400">
+        <span className="hidden lg:inline">
+          Espaço inicia/pausa o foco.{" "}
+        </span>
         No PC, use Flutuar para o cronômetro por cima de outros apps. Tempos em{" "}
         <Link href="/timer" className="text-copper underline-offset-2 hover:underline">
           Timer

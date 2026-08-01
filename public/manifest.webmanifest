@@ -3,7 +3,7 @@
   "name": "Tobias",
   "short_name": "Tobias",
   "description": "Guia de progressão pessoal — campanhas, próximo passo e pomodoro",
-  "start_url": "/login",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#0a0908",

@@ -22,7 +22,7 @@ const AppLayout = async ({ children }) => {
           <div className="relative min-h-screen bg-ink-950 text-ash-200 bg-ink-radial">
             <SidebarMenu />
             <main className="min-h-screen lg:pl-60">
-              <div className="mx-auto max-w-5xl px-4 pb-6 pt-14 sm:px-6 sm:pb-10 sm:pt-16">
+              <div className="mx-auto max-w-5xl animate-[fadeRise_360ms_ease-out] px-4 pb-6 pt-7 sm:px-6 sm:pb-10 sm:pt-16">
                 {children}
               </div>
               <BottombarMenu />

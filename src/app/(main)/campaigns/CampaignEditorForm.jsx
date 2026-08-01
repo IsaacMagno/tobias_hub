@@ -882,10 +882,10 @@ export default function CampaignEditorForm({
             </label>
           )}
 
-          <div className="flex flex-wrap gap-2">
+          <div className="sticky bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-30 -mx-4 flex flex-wrap gap-2 bg-gradient-to-t from-ink-950 via-ink-950/90 to-transparent px-4 pb-2 pt-6 sm:static sm:mx-0 sm:bg-none sm:p-0">
             <button
               type="submit"
-              className="btn-primary"
+              className="btn-primary flex-1 sm:flex-none"
               disabled={!canSubmit || busy}
             >
               {busy ? (

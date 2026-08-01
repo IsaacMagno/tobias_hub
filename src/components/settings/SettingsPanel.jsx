@@ -204,7 +204,7 @@ export function SettingsTrigger({ onClick, className = "" }) {
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex h-8 w-8 items-center justify-center rounded-full border border-transparent text-ink-600 transition hover:border-copper/20 hover:text-ash-400 ${className}`}
+      className={`inline-flex h-8 w-8 items-center justify-center rounded-full border border-transparent text-ash-600 transition hover:border-copper/20 hover:text-ash-400 ${className}`}
       aria-label="Configurações"
       title="Configurações"
     >

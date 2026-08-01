@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { BusyRail, Spinner } from "@/components/LoadingUI";
+import EmptyState from "@/components/EmptyState";
 import {
   fetchSuggestedCampaigns,
   actionAcceptSuggestedCampaign,
@@ -678,9 +679,7 @@ export default function CommunityPanel() {
               </div>
             ) : !catalog.length ? (
               <div className="panel p-5">
-                <p className="text-sm text-ash-400">
-                  Nenhuma sugestão neste filtro.
-                </p>
+                <EmptyState compact title="Nenhuma sugestão neste filtro" />
               </div>
             ) : (
               <>
