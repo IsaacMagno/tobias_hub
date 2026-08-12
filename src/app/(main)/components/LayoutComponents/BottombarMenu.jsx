@@ -18,6 +18,7 @@ const primary = [
 
 const secondary = [
   { href: "/community", label: "Comunidade" },
+  { href: "/finance", label: "Finanças" },
   { href: "/analytics", label: "Atividade" },
   { href: "/streaks", label: "Sequências" },
   { href: "/champions", label: "Campeões" },

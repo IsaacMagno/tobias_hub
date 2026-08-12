@@ -246,8 +246,8 @@ export const TOURS = {
     path: "/community",
     match: (p) => p === "/community" || p.startsWith("/community/"),
     requires: ["campaigns"],
-    nextHref: "/streaks",
-    nextLabel: "Ver Sequências",
+    nextHref: "/finance",
+    nextLabel: "Ver Finanças",
     steps: [
       {
         id: "intro",
@@ -274,9 +274,45 @@ export const TOURS = {
         anchor: "tour-community-catalog",
       },
       {
+        id: "next-finance",
+        title: "Próximo: Finanças",
+        body: "Ledger simples: lançamentos por categoria e gráficos do período — separado do Continuar.",
+        ctaHref: "/finance",
+        ctaLabel: "Abrir Finanças",
+      },
+    ],
+  },
+
+  finance: {
+    id: "finance",
+    path: "/finance",
+    match: (p) => p === "/finance" || p.startsWith("/finance/"),
+    requires: ["campaigns"],
+    nextHref: "/streaks",
+    nextLabel: "Ver Sequências",
+    steps: [
+      {
+        id: "intro",
+        title: "Finanças",
+        body: "Aqui você registra entradas e saídas por categoria. Não é o Continuar — é um satélite para organizar o dinheiro.",
+        anchor: "tour-finance-header",
+      },
+      {
+        id: "chart",
+        title: "Gráfico do período",
+        body: "Mensal, trimestral, semestral, anual ou intervalo personalizado. Barras comparam entradas e saídas.",
+        anchor: "tour-finance-chart",
+      },
+      {
+        id: "form",
+        title: "Novo lançamento",
+        body: "Valor, data e categoria. Entrada ou saída — categorias padrão já vêm prontas; você pode criar mais.",
+        anchor: "tour-finance-form",
+      },
+      {
         id: "next-streaks",
         title: "Próximo: Sequências",
-        body: "Sequências são hábitos diários privados (marcar o dia, escudos, calendário) — outra ferramenta de ritmo.",
+        body: "Sequências são hábitos diários privados (marcar o dia, escudos, calendário).",
         ctaHref: "/streaks",
         ctaLabel: "Abrir Sequências",
       },
@@ -412,7 +448,7 @@ export const TOURS = {
       {
         id: "done",
         title: "Você já sabe o caminho",
-        body: "Ciclo: Continuar → Timer → Campanhas → Comunidade (aceitar, desafios, praça, clãs) → Sequências → Perfil e Atividade. Bom foco.",
+        body: "Ciclo: Continuar → Timer → Campanhas → Comunidade → Finanças → Sequências → Perfil e Atividade. Bom foco.",
         ctaHref: "/",
         ctaLabel: "Voltar ao Continuar",
       },

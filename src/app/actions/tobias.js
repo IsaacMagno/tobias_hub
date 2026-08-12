@@ -79,6 +79,16 @@ import {
   clanCheckin,
   listClanProtocolOptions,
 } from "@/lib/services/communityClans";
+import {
+  listFinanceCategories,
+  createFinanceCategory,
+  archiveFinanceCategory,
+  listFinanceEntries,
+  createFinanceEntry,
+  updateFinanceEntry,
+  deleteFinanceEntry,
+  getFinanceChart,
+} from "@/lib/services/finance";
 
 export async function doLogin(username, password) {
   const result = await loginChampion(username, password);
@@ -513,4 +523,60 @@ export async function actionJoinClanByCode(code) {
 export async function actionClanCheckin(clanId) {
   const session = await requireChampionSession();
   return clanCheckin(session.user.champion_id, Number(clanId));
+}
+
+/* —— Finanças —— */
+
+export async function fetchFinanceCategories() {
+  const session = await requireChampionSession();
+  return listFinanceCategories(session.user.champion_id);
+}
+
+export async function actionCreateFinanceCategory({ name, kind }) {
+  const session = await requireChampionSession();
+  return createFinanceCategory(session.user.champion_id, { name, kind });
+}
+
+export async function actionArchiveFinanceCategory(categoryId) {
+  const session = await requireChampionSession();
+  return archiveFinanceCategory(session.user.champion_id, categoryId);
+}
+
+export async function fetchFinanceEntries({ limit, offset, from, to } = {}) {
+  const session = await requireChampionSession();
+  return listFinanceEntries(session.user.champion_id, {
+    limit,
+    offset,
+    from,
+    to,
+  });
+}
+
+export async function actionCreateFinanceEntry(payload) {
+  const session = await requireChampionSession();
+  return createFinanceEntry(session.user.champion_id, payload || {});
+}
+
+export async function actionUpdateFinanceEntry(entryId, payload) {
+  const session = await requireChampionSession();
+  return updateFinanceEntry(
+    session.user.champion_id,
+    entryId,
+    payload || {}
+  );
+}
+
+export async function actionDeleteFinanceEntry(entryId) {
+  const session = await requireChampionSession();
+  return deleteFinanceEntry(session.user.champion_id, entryId);
+}
+
+export async function fetchFinanceChart({ period, from, to, anchor } = {}) {
+  const session = await requireChampionSession();
+  return getFinanceChart(session.user.champion_id, {
+    period,
+    from,
+    to,
+    anchor,
+  });
 }

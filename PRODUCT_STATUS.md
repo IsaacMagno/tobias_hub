@@ -86,7 +86,15 @@ Vida
 | Clãs | 2–5 pessoas, 7 dias, mesmo protocolo (qualquer oficial ou publicação aprovada); código `CL-…`; check-in em grupo |
 | Marcos | Banners coletivos (“N pessoas aceitaram X”) em thresholds 10/50/100 |
 
-### 4.5 Sequências (`/streaks`)
+### 4.5 Finanças (`/finance`) — satélite opt-in
+
+- Lançamentos com **categoria** (entrada / saída); sem carteiras/contas bancárias ainda.
+- Categorias padrão na 1ª abertura; criar e arquivar.
+- Gráficos CSS: mensal · trimestral · semestral · anual · intervalo personalizado.
+- Totais do período (entradas, saídas, saldo).
+- **Não** altera o motor Continuar; coexiste com campanhas de hábitos financeiros.
+
+### 4.6 Sequências (`/streaks`)
 
 - Hábitos **privados** (construir ou evitar).
 - Marcar / desmarcar o dia; calendário; melhor sequência.
@@ -94,7 +102,7 @@ Vida
 - Vínculo opcional a campanhas (auto-mark).
 - Separado do motor de campanha: **não** pune pausa de missão.
 
-### 4.6 Identidade & Mundo
+### 4.7 Identidade & Mundo
 
 | Rota | Função |
 |------|--------|
@@ -102,14 +110,14 @@ Vida
 | `/analytics` | Minutos por dia a partir de sessões concluídas; filtro por campanha |
 | `/champions` | Galeria e visita a perfis públicos — inspiração, **não** ranking |
 
-### 4.7 Conta e onboarding
+### 4.8 Conta e onboarding
 
 - Login / registro com convite.
 - Sessão NextAuth (credenciais).
-- Tours por área (Continuar, editor, Timer, Campanhas, Comunidade, Sequências, Perfil, Atividade, Campeões).
+- Tours por área (Continuar, editor, Timer, Campanhas, Comunidade, Finanças, Sequências, Perfil, Atividade, Campeões).
 - Reinício de tours nas configurações.
 
-### 4.8 PWA / shell
+### 4.9 PWA / shell
 
 - UI responsiva desktop + mobile.
 - Menu lateral / bottom bar.
