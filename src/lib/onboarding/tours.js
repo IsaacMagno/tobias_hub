@@ -299,8 +299,8 @@ export const TOURS = {
       },
       {
         id: "chart",
-        title: "Gráfico do período",
-        body: "Mensal, trimestral, semestral, anual ou intervalo personalizado. No final da página, a pizza mostra o peso de cada categoria.",
+        title: "Gráficos",
+        body: "Na aba Gráficos você escolhe o período e o tipo de visualização: pizza, barras, comparativo ou saldo.",
         anchor: "tour-finance-chart",
       },
       {

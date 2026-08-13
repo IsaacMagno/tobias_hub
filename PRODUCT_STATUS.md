@@ -88,12 +88,12 @@ Vida
 
 ### 4.5 Finanças (`/finance`) — satélite opt-in
 
-- Três abas: **Resumo** (períodos, totais, formulário, pizza), **Lançamentos** (mês a mês) e **Categorias**.
+- Quatro abas: **Início** (totais do mês + formulário), **Lançamentos** (mês a mês), **Gráficos** e **Categorias**.
 - Lançamentos com **categoria** (entrada / saída); recorrência opcional (diária / semanal / mensal / anual) com duração (presets, personalizada ou até uma data).
-- Aba Lançamentos: navegação ‹ mês › com setas, check de **pago** (`paid_at`), filtros por status / tipo / categoria e ordenação por data ou valor.
+- Aba Lançamentos: navegação ‹ mês › com setas, check de **pago** só em saídas (`paid_at`), filtros por status / tipo / categoria, ordenação, lista ou tabela, paginação.
+- Aba Gráficos: períodos (mensal · trimestral · semestral · anual · personalizado) e tipos pizza / barras / comparativo / saldo.
 - Categorias padrão na 1ª abertura; criar e arquivar.
-- Gráfico de pizza por categoria (saídas ou entradas); períodos: mensal · trimestral · semestral · anual · personalizado.
-- Totais do período (entradas, saídas, saldo).
+- Totais do mês no Início (entradas, saídas, saldo).
 - **Não** altera o motor Continuar; coexiste com campanhas de hábitos financeiros.
 
 ### 4.6 Sequências (`/streaks`)

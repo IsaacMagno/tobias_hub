@@ -17,8 +17,9 @@ import {
 } from "../../services/requests";
 
 const TABS = [
-  { id: "resumo", label: "Resumo" },
+  { id: "resumo", label: "Início" },
   { id: "lancamentos", label: "Lançamentos" },
+  { id: "graficos", label: "Gráficos" },
   { id: "categorias", label: "Categorias" },
 ];
 
@@ -30,7 +31,15 @@ const PERIODS = [
   { id: "custom", label: "Personalizado" },
 ];
 
+const CHART_TYPES = [
+  { id: "pie", label: "Pizza" },
+  { id: "bars", label: "Barras" },
+  { id: "compare", label: "Comparativo" },
+  { id: "balance", label: "Saldo" },
+];
+
 const MONTH_FETCH_LIMIT = 500;
+const LIST_PAGE_SIZE = 10;
 
 const PIE_COLORS = [
   "#c4a574",
@@ -47,7 +56,7 @@ const PIE_COLORS = [
 
 const STATUS_FILTERS = [
   { id: "all", label: "Todos" },
-  { id: "unpaid", label: "Pendentes" },
+  { id: "unpaid", label: "A pagar" },
   { id: "paid", label: "Pagos" },
 ];
 
@@ -113,6 +122,7 @@ function emptyForm() {
     customValue: "3",
     customUnit: "month",
     untilDate: "",
+    alreadyPaid: false,
   };
 }
 
@@ -296,11 +306,204 @@ function FinancePie({ slices }) {
   );
 }
 
+/** Barras horizontais por categoria. */
+function FinanceBars({ slices }) {
+  const total = slices.reduce((s, x) => s + x.amount_cents, 0);
+  if (!total) return null;
+  const max = Math.max(...slices.map((s) => s.amount_cents));
+
+  return (
+    <ul className="space-y-3">
+      {slices.map((slice, i) => {
+        const pct = Math.round((slice.amount_cents / total) * 1000) / 10;
+        const width = max > 0 ? (slice.amount_cents / max) * 100 : 0;
+        const color = PIE_COLORS[i % PIE_COLORS.length];
+        return (
+          <li key={`${slice.kind}-${slice.id}`} className="space-y-1">
+            <div className="flex items-center justify-between gap-2 text-sm">
+              <span className="truncate text-ash-200">{slice.name}</span>
+              <span className="shrink-0 tabular-nums text-ash-400">
+                {pct}% · {formatBrl(slice.amount_cents)}
+              </span>
+            </div>
+            <div className="h-2.5 overflow-hidden rounded-sm bg-ink-950">
+              <div
+                className="h-full rounded-sm transition-[width]"
+                style={{ width: `${width}%`, backgroundColor: color }}
+              />
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+/** Entradas × saídas ao longo do período (buckets). */
+function FinanceCompare({ buckets }) {
+  const rows = (buckets || []).filter(
+    (b) => b.income_cents > 0 || b.expense_cents > 0
+  );
+  if (!rows.length) return null;
+  const max = Math.max(
+    ...rows.map((b) => Math.max(b.income_cents, b.expense_cents)),
+    1
+  );
+  const chartH = 160;
+  const gap = 8;
+  const groupW = 28;
+  const barW = 10;
+  const width = Math.max(rows.length * (groupW + gap) + 24, 280);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-4 text-[11px] text-ash-400">
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-sm bg-copper" aria-hidden />
+          Entradas
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-sm bg-ember-soft" aria-hidden />
+          Saídas
+        </span>
+      </div>
+      <div className="overflow-x-auto">
+        <svg
+          viewBox={`0 0 ${width} ${chartH + 36}`}
+          className="h-52 min-w-full"
+          role="img"
+          aria-label="Comparativo de entradas e saídas"
+        >
+          {rows.map((b, i) => {
+            const x = 16 + i * (groupW + gap);
+            const inH = (b.income_cents / max) * chartH;
+            const outH = (b.expense_cents / max) * chartH;
+            return (
+              <g key={b.key}>
+                <rect
+                  x={x}
+                  y={chartH - inH}
+                  width={barW}
+                  height={inH}
+                  fill="#c4a574"
+                  rx="1"
+                />
+                <rect
+                  x={x + barW + 2}
+                  y={chartH - outH}
+                  width={barW}
+                  height={outH}
+                  fill="#b54a2e"
+                  rx="1"
+                />
+                <text
+                  x={x + groupW / 2 - 2}
+                  y={chartH + 14}
+                  textAnchor="middle"
+                  fill="#9a9188"
+                  fontSize="9"
+                >
+                  {b.label}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+/** Saldo (entradas − saídas) por bucket. */
+function FinanceBalance({ buckets }) {
+  const rows = buckets || [];
+  if (!rows.length) return null;
+  const values = rows.map((b) => b.income_cents - b.expense_cents);
+  const maxAbs = Math.max(...values.map((v) => Math.abs(v)), 1);
+  const chartH = 160;
+  const mid = chartH / 2;
+  const gap = 6;
+  const barW = 14;
+  const width = Math.max(rows.length * (barW + gap) + 24, 280);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-4 text-[11px] text-ash-400">
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-sm bg-copper" aria-hidden />
+          Positivo
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-sm bg-ember-soft" aria-hidden />
+          Negativo
+        </span>
+      </div>
+      <div className="overflow-x-auto">
+        <svg
+          viewBox={`0 0 ${width} ${chartH + 36}`}
+          className="h-52 min-w-full"
+          role="img"
+          aria-label="Saldo por período"
+        >
+          <line
+            x1="8"
+            x2={width - 8}
+            y1={mid}
+            y2={mid}
+            stroke="#3d3630"
+            strokeWidth="1"
+          />
+          {rows.map((b, i) => {
+            const net = b.income_cents - b.expense_cents;
+            const h = (Math.abs(net) / maxAbs) * (chartH / 2 - 4);
+            const x = 16 + i * (barW + gap);
+            const y = net >= 0 ? mid - h : mid;
+            return (
+              <g key={b.key}>
+                <rect
+                  x={x}
+                  y={y}
+                  width={barW}
+                  height={h}
+                  fill={net >= 0 ? "#c4a574" : "#b54a2e"}
+                  rx="1"
+                />
+                <text
+                  x={x + barW / 2}
+                  y={chartH + 14}
+                  textAnchor="middle"
+                  fill="#9a9188"
+                  fontSize="9"
+                >
+                  {b.label}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+      <p className="text-center font-display text-sm tabular-nums text-ash-200">
+        Saldo do período:{" "}
+        <span
+          className={
+            values.reduce((a, b) => a + b, 0) >= 0
+              ? "text-copper-bright"
+              : "text-ember-soft"
+          }
+        >
+          {formatBrl(values.reduce((a, b) => a + b, 0))}
+        </span>
+      </p>
+    </div>
+  );
+}
+
 export default function FinancePanel() {
   const [tab, setTab] = useState("resumo");
 
   const [categories, setCategories] = useState([]);
   const [chart, setChart] = useState(null);
+  const [monthSummary, setMonthSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [rail, setRail] = useState("");
   const [busy, setBusy] = useState(false);
@@ -308,6 +511,7 @@ export default function FinancePanel() {
   const [period, setPeriod] = useState("month");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
+  const [chartType, setChartType] = useState("pie");
 
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
@@ -328,6 +532,7 @@ export default function FinancePanel() {
   const [filterCategory, setFilterCategory] = useState("all");
   const [sortBy, setSortBy] = useState("date_desc");
   const [listView, setListView] = useState("cards");
+  const [listPage, setListPage] = useState(0);
 
   const categoriesForKind = useMemo(
     () => categories.filter((c) => c.kind === form.kind && !c.archived_at),
@@ -363,6 +568,11 @@ export default function FinancePanel() {
     setChart(data);
   }, [period, customFrom, customTo]);
 
+  const loadMonthSummary = useCallback(async () => {
+    const data = await fetchFinanceChart({ period: "month" });
+    setMonthSummary(data);
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -380,7 +590,7 @@ export default function FinancePanel() {
               : f;
           });
         }
-        await loadChart();
+        await Promise.all([loadMonthSummary(), loadChart()]);
       } catch (err) {
         if (!cancelled) toast.error(err.message || "Falha ao carregar");
       } finally {
@@ -492,7 +702,7 @@ export default function FinancePanel() {
   };
 
   const reloadData = async () => {
-    await Promise.all([loadChart(), loadMonthEntries()]);
+    await Promise.all([loadMonthSummary(), loadChart(), loadMonthEntries()]);
   };
 
   const shiftMonth = (delta) => {
@@ -534,6 +744,10 @@ export default function FinancePanel() {
         note: form.note,
         recurrence: editingId ? null : form.recurrence || null,
         recurrenceDuration: editingId ? null : buildRecurrenceDuration(form),
+        paid:
+          !editingId && form.kind === "expense"
+            ? Boolean(form.alreadyPaid)
+            : false,
       };
       if (editingId) {
         await actionUpdateFinanceEntry(editingId, payload);
@@ -569,16 +783,21 @@ export default function FinancePanel() {
     setTab("resumo");
   };
 
-  const handleTogglePaid = (entry) =>
-    withBusy(entry.paid_at ? "Desmarcando…" : "Marcando como pago…", async () => {
-      const updated = await actionSetFinanceEntryPaid(
-        entry.id,
-        !entry.paid_at
-      );
-      setMonthEntries((prev) =>
-        prev.map((e) => (e.id === updated.id ? updated : e))
-      );
-    });
+  const handleTogglePaid = (entry) => {
+    if (entry.category?.kind === "income") return;
+    return withBusy(
+      entry.paid_at ? "Desmarcando…" : "Marcando como pago…",
+      async () => {
+        const updated = await actionSetFinanceEntryPaid(
+          entry.id,
+          !entry.paid_at
+        );
+        setMonthEntries((prev) =>
+          prev.map((e) => (e.id === updated.id ? updated : e))
+        );
+      }
+    );
+  };
 
   const handleDelete = (entryId, { deleteSeries = false } = {}) =>
     withBusy(deleteSeries ? "Apagando série…" : "Apagando…", async () => {
@@ -634,8 +853,16 @@ export default function FinancePanel() {
 
   const filteredEntries = useMemo(() => {
     let rows = monthEntries;
-    if (filterStatus === "paid") rows = rows.filter((e) => e.paid_at);
-    if (filterStatus === "unpaid") rows = rows.filter((e) => !e.paid_at);
+    // Status de pagamento só vale para saídas
+    if (filterStatus === "paid") {
+      rows = rows.filter(
+        (e) => e.category?.kind === "expense" && e.paid_at
+      );
+    } else if (filterStatus === "unpaid") {
+      rows = rows.filter(
+        (e) => e.category?.kind === "expense" && !e.paid_at
+      );
+    }
     if (filterKind !== "all") {
       rows = rows.filter((e) => e.category?.kind === filterKind);
     }
@@ -662,12 +889,58 @@ export default function FinancePanel() {
   const filteredTotals = useMemo(() => {
     let income = 0;
     let expense = 0;
+    let expensePaid = 0;
+    let expenseUnpaid = 0;
+    let expensePaidCount = 0;
+    let expenseUnpaidCount = 0;
+    let expenseCount = 0;
     for (const e of filteredEntries) {
-      if (e.category?.kind === "income") income += e.amount_cents;
-      else expense += e.amount_cents;
+      if (e.category?.kind === "income") {
+        income += e.amount_cents;
+      } else {
+        expense += e.amount_cents;
+        expenseCount += 1;
+        if (e.paid_at) {
+          expensePaid += e.amount_cents;
+          expensePaidCount += 1;
+        } else {
+          expenseUnpaid += e.amount_cents;
+          expenseUnpaidCount += 1;
+        }
+      }
     }
-    return { income, expense };
+    return {
+      income,
+      expense,
+      expenseCount,
+      expensePaid,
+      expenseUnpaid,
+      expensePaidCount,
+      expenseUnpaidCount,
+    };
   }, [filteredEntries]);
+
+  const listPageCount = Math.max(
+    1,
+    Math.ceil(filteredEntries.length / LIST_PAGE_SIZE) || 1
+  );
+  const safeListPage = Math.min(listPage, listPageCount - 1);
+  const pagedEntries = useMemo(() => {
+    const start = safeListPage * LIST_PAGE_SIZE;
+    return filteredEntries.slice(start, start + LIST_PAGE_SIZE);
+  }, [filteredEntries, safeListPage]);
+
+  useEffect(() => {
+    setListPage(0);
+  }, [
+    filterStatus,
+    filterKind,
+    filterCategory,
+    sortBy,
+    monthRange.from,
+    monthRange.to,
+    listView,
+  ]);
 
   const hasActiveFilters =
     filterStatus !== "all" || filterKind !== "all" || filterCategory !== "all";
@@ -682,16 +955,16 @@ export default function FinancePanel() {
         </p>
         <h1 className="font-display text-3xl text-ash-200">Finanças</h1>
         <p className="text-sm text-ash-400">
-          Lançamentos por categoria e visão do período — sem pressão.
+          Lançamentos por categoria e visão do período.
         </p>
       </header>
 
-      <div className="flex gap-1 rounded-xl border border-copper/15 bg-ink-950/50 p-1">
+      <div className="flex gap-1 overflow-x-auto rounded-xl border border-copper/15 bg-ink-950/50 p-1">
         {TABS.map((t) => (
           <button
             key={t.id}
             type="button"
-            className={`flex-1 rounded-lg px-3 py-2 text-sm transition ${
+            className={`shrink-0 flex-1 rounded-lg px-2.5 py-2 text-sm transition sm:px-3 ${
               tab === t.id
                 ? "bg-copper/20 text-copper-bright"
                 : "text-ash-400 hover:text-ash-300"
@@ -703,71 +976,24 @@ export default function FinancePanel() {
         ))}
       </div>
 
-      {loading && !chart ? (
+      {loading && !monthSummary ? (
         <div className="flex justify-center py-16">
           <Spinner />
         </div>
       ) : null}
 
-      {!loading || chart ? (
+      {!loading || monthSummary || chart ? (
         <>
           {tab === "resumo" ? (
             <>
               <section data-tour="tour-finance-summary" className="space-y-4">
-                <div className="flex flex-wrap gap-2">
-                  {PERIODS.map((p) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      className={`rounded-full border px-3 py-1 text-xs transition ${
-                        period === p.id
-                          ? "border-copper/50 bg-copper/15 text-copper-bright"
-                          : "border-copper/15 text-ash-400 hover:border-copper/35"
-                      }`}
-                      onClick={() => setPeriod(p.id)}
-                      disabled={busy}
-                    >
-                      {p.label}
-                    </button>
-                  ))}
-                </div>
-
-                {period === "custom" ? (
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <label className="space-y-1.5">
-                      <span className="text-xs text-ash-400">De</span>
-                      <input
-                        type="date"
-                        className="input-field"
-                        value={customFrom}
-                        onChange={(e) => setCustomFrom(e.target.value)}
-                      />
-                    </label>
-                    <label className="space-y-1.5">
-                      <span className="text-xs text-ash-400">Até</span>
-                      <input
-                        type="date"
-                        className="input-field"
-                        value={customTo}
-                        onChange={(e) => setCustomTo(e.target.value)}
-                      />
-                    </label>
-                  </div>
-                ) : null}
-
-                {chart?.from && chart?.to ? (
-                  <p className="text-[11px] tabular-nums text-ash-500">
-                    {chart.from} → {chart.to}
-                  </p>
-                ) : null}
-
                 <div className="grid grid-cols-3 gap-2">
                   <div className="panel p-3 text-center sm:p-4">
                     <p className="text-[10px] uppercase tracking-wider text-ash-500">
                       Entradas
                     </p>
                     <p className="mt-1 font-display text-sm text-ash-200 sm:text-base">
-                      {formatBrl(chart?.income_cents)}
+                      {formatBrl(monthSummary?.income_cents)}
                     </p>
                   </div>
                   <div className="panel p-3 text-center sm:p-4">
@@ -775,7 +1001,7 @@ export default function FinancePanel() {
                       Saídas
                     </p>
                     <p className="mt-1 font-display text-sm text-ash-200 sm:text-base">
-                      {formatBrl(chart?.expense_cents)}
+                      {formatBrl(monthSummary?.expense_cents)}
                     </p>
                   </div>
                   <div className="panel p-3 text-center sm:p-4">
@@ -784,15 +1010,20 @@ export default function FinancePanel() {
                     </p>
                     <p
                       className={`mt-1 font-display text-sm sm:text-base ${
-                        (chart?.balance_cents || 0) >= 0
+                        (monthSummary?.balance_cents || 0) >= 0
                           ? "text-copper-bright"
                           : "text-ember-soft"
                       }`}
                     >
-                      {formatBrl(chart?.balance_cents)}
+                      {formatBrl(monthSummary?.balance_cents)}
                     </p>
                   </div>
                 </div>
+                {monthSummary?.from && monthSummary?.to ? (
+                  <p className="text-[11px] tabular-nums text-ash-500">
+                    Mês atual · {monthSummary.from} → {monthSummary.to}
+                  </p>
+                ) : null}
               </section>
 
               <section
@@ -816,7 +1047,14 @@ export default function FinancePanel() {
                             ? "bg-copper/20 text-copper-bright"
                             : "text-ash-400 hover:text-ash-300"
                         }`}
-                        onClick={() => setForm((f) => ({ ...f, kind: k.id }))}
+                        onClick={() =>
+                          setForm((f) => ({
+                            ...f,
+                            kind: k.id,
+                            alreadyPaid:
+                              k.id === "expense" ? f.alreadyPaid : false,
+                          }))
+                        }
                         disabled={busy}
                       >
                         {k.label}
@@ -886,6 +1124,42 @@ export default function FinancePanel() {
                       placeholder="Ex.: mercado da semana"
                     />
                   </label>
+
+                  {!editingId && form.kind === "expense" ? (
+                    <div className="space-y-1.5">
+                      <span className="text-xs text-ash-400">Situação</span>
+                      <div className="flex gap-1 rounded-xl border border-copper/15 bg-ink-950/50 p-1">
+                        {[
+                          { id: false, label: "A pagar" },
+                          { id: true, label: "Já pago" },
+                        ].map((opt) => (
+                          <button
+                            key={String(opt.id)}
+                            type="button"
+                            className={`flex-1 rounded-lg px-3 py-2 text-sm transition ${
+                              Boolean(form.alreadyPaid) === opt.id
+                                ? "bg-copper/20 text-copper-bright"
+                                : "text-ash-400 hover:text-ash-300"
+                            }`}
+                            onClick={() =>
+                              setForm((f) => ({
+                                ...f,
+                                alreadyPaid: opt.id,
+                              }))
+                            }
+                            disabled={busy}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                      <span className="block text-[11px] text-ash-500">
+                        Conta futura (luz, aluguel) → A pagar. Mercado ou compra
+                        que você já quitou → Já pago. Na lista, o ✓ também
+                        marca/desmarca depois.
+                      </span>
+                    </div>
+                  ) : null}
 
                   {!editingId ? (
                     <>
@@ -1047,49 +1321,168 @@ export default function FinancePanel() {
                   </div>
                 </form>
               </section>
+            </>
+          ) : null}
 
-              <section
-                data-tour="tour-finance-chart"
-                className="panel space-y-4 p-5"
-              >
+          {tab === "graficos" ? (
+            <section data-tour="tour-finance-chart" className="space-y-4">
+              <div className="flex flex-wrap gap-2">
+                {PERIODS.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    className={`rounded-full border px-3 py-1 text-xs transition ${
+                      period === p.id
+                        ? "border-copper/50 bg-copper/15 text-copper-bright"
+                        : "border-copper/15 text-ash-400 hover:border-copper/35"
+                    }`}
+                    onClick={() => setPeriod(p.id)}
+                    disabled={busy}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+
+              {period === "custom" ? (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="space-y-1.5">
+                    <span className="text-xs text-ash-400">De</span>
+                    <input
+                      type="date"
+                      className="input-field"
+                      value={customFrom}
+                      onChange={(e) => setCustomFrom(e.target.value)}
+                    />
+                  </label>
+                  <label className="space-y-1.5">
+                    <span className="text-xs text-ash-400">Até</span>
+                    <input
+                      type="date"
+                      className="input-field"
+                      value={customTo}
+                      onChange={(e) => setCustomTo(e.target.value)}
+                    />
+                  </label>
+                </div>
+              ) : null}
+
+              {chart?.from && chart?.to ? (
+                <p className="text-[11px] tabular-nums text-ash-500">
+                  {chart.from} → {chart.to}
+                </p>
+              ) : null}
+
+              <div className="grid grid-cols-3 gap-2">
+                <div className="panel p-3 text-center sm:p-4">
+                  <p className="text-[10px] uppercase tracking-wider text-ash-500">
+                    Entradas
+                  </p>
+                  <p className="mt-1 font-display text-sm text-ash-200 sm:text-base">
+                    {formatBrl(chart?.income_cents)}
+                  </p>
+                </div>
+                <div className="panel p-3 text-center sm:p-4">
+                  <p className="text-[10px] uppercase tracking-wider text-ash-500">
+                    Saídas
+                  </p>
+                  <p className="mt-1 font-display text-sm text-ash-200 sm:text-base">
+                    {formatBrl(chart?.expense_cents)}
+                  </p>
+                </div>
+                <div className="panel p-3 text-center sm:p-4">
+                  <p className="text-[10px] uppercase tracking-wider text-ash-500">
+                    Saldo
+                  </p>
+                  <p
+                    className={`mt-1 font-display text-sm sm:text-base ${
+                      (chart?.balance_cents || 0) >= 0
+                        ? "text-copper-bright"
+                        : "text-ember-soft"
+                    }`}
+                  >
+                    {formatBrl(chart?.balance_cents)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="panel space-y-4 p-5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h2 className="text-xs uppercase tracking-[0.18em] text-ash-400">
-                    Gráfico
-                  </h2>
                   <div className="flex gap-1 rounded-xl border border-copper/15 bg-ink-950/50 p-1">
-                    {[
-                      { id: "expense", label: "Saídas" },
-                      { id: "income", label: "Entradas" },
-                    ].map((k) => (
+                    {CHART_TYPES.map((t) => (
                       <button
-                        key={k.id}
+                        key={t.id}
                         type="button"
-                        className={`rounded-lg px-3 py-1.5 text-xs transition ${
-                          pieKind === k.id
+                        className={`rounded-lg px-2.5 py-1.5 text-xs transition sm:px-3 ${
+                          chartType === t.id
                             ? "bg-copper/20 text-copper-bright"
                             : "text-ash-400 hover:text-ash-300"
                         }`}
-                        onClick={() => setPieKind(k.id)}
+                        onClick={() => setChartType(t.id)}
                       >
-                        {k.label}
+                        {t.label}
                       </button>
                     ))}
                   </div>
+
+                  {chartType === "pie" || chartType === "bars" ? (
+                    <div className="flex gap-1 rounded-xl border border-copper/15 bg-ink-950/50 p-1">
+                      {[
+                        { id: "expense", label: "Saídas" },
+                        { id: "income", label: "Entradas" },
+                      ].map((k) => (
+                        <button
+                          key={k.id}
+                          type="button"
+                          className={`rounded-lg px-3 py-1.5 text-xs transition ${
+                            pieKind === k.id
+                              ? "bg-copper/20 text-copper-bright"
+                              : "text-ash-400 hover:text-ash-300"
+                          }`}
+                          onClick={() => setPieKind(k.id)}
+                        >
+                          {k.label}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
 
-                {!pieSlices.length ? (
+                {period === "custom" && (!customFrom || !customTo) ? (
                   <p className="text-sm text-ash-500">
-                    {period === "custom" && (!customFrom || !customTo)
-                      ? "Escolha as datas do intervalo."
-                      : pieKind === "expense"
-                        ? "Sem saídas neste período para montar a pizza."
-                        : "Sem entradas neste período para montar a pizza."}
+                    Escolha as datas do intervalo.
                   </p>
+                ) : chartType === "compare" ? (
+                  chart?.buckets?.some(
+                    (b) => b.income_cents > 0 || b.expense_cents > 0
+                  ) ? (
+                    <FinanceCompare buckets={chart.buckets} />
+                  ) : (
+                    <p className="text-sm text-ash-500">
+                      Sem lançamentos neste período para comparar.
+                    </p>
+                  )
+                ) : chartType === "balance" ? (
+                  chart?.buckets?.length ? (
+                    <FinanceBalance buckets={chart.buckets} />
+                  ) : (
+                    <p className="text-sm text-ash-500">
+                      Sem dados de saldo neste período.
+                    </p>
+                  )
+                ) : !pieSlices.length ? (
+                  <p className="text-sm text-ash-500">
+                    {pieKind === "expense"
+                      ? "Sem saídas neste período."
+                      : "Sem entradas neste período."}
+                  </p>
+                ) : chartType === "bars" ? (
+                  <FinanceBars slices={pieSlices} />
                 ) : (
                   <FinancePie slices={pieSlices} />
                 )}
-              </section>
-            </>
+              </div>
+            </section>
           ) : null}
 
           {tab === "lancamentos" ? (
@@ -1178,20 +1571,34 @@ export default function FinancePanel() {
                 </label>
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-start justify-between gap-2">
                 {filteredEntries.length ? (
-                  <p className="text-[11px] tabular-nums text-ash-500">
-                    {filteredEntries.length}{" "}
-                    {filteredEntries.length === 1
-                      ? "lançamento"
-                      : "lançamentos"}
-                    {filteredTotals.expense
-                      ? ` · Saídas ${formatBrl(filteredTotals.expense)}`
-                      : ""}
-                    {filteredTotals.income
-                      ? ` · Entradas ${formatBrl(filteredTotals.income)}`
-                      : ""}
-                  </p>
+                  <div className="space-y-0.5 text-[11px] tabular-nums text-ash-500">
+                    <p>
+                      {filteredEntries.length}{" "}
+                      {filteredEntries.length === 1
+                        ? "lançamento"
+                        : "lançamentos"}
+                      {filteredTotals.expense
+                        ? ` · Saídas ${formatBrl(filteredTotals.expense)}`
+                        : ""}
+                      {filteredTotals.income
+                        ? ` · Entradas ${formatBrl(filteredTotals.income)}`
+                        : ""}
+                    </p>
+                    {filteredTotals.expenseCount > 0 ? (
+                      <p>
+                        {filteredTotals.expensePaidCount}{" "}
+                        {filteredTotals.expensePaidCount === 1
+                          ? "pago"
+                          : "pagos"}{" "}
+                        {formatBrl(filteredTotals.expensePaid)}
+                        {filteredTotals.expenseUnpaidCount > 0
+                          ? ` · ${filteredTotals.expenseUnpaidCount} a pagar ${formatBrl(filteredTotals.expenseUnpaid)}`
+                          : ""}
+                      </p>
+                    ) : null}
+                  </div>
                 ) : (
                   <span />
                 )}
@@ -1232,7 +1639,7 @@ export default function FinancePanel() {
                     hint={
                       hasActiveFilters
                         ? "Ajuste os filtros acima para ver outros lançamentos."
-                        : "Registre uma entrada ou saída na aba Resumo."
+                        : "Registre uma entrada ou saída na aba Início."
                     }
                   />
                 </div>
@@ -1254,17 +1661,139 @@ export default function FinancePanel() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredEntries.map((entry) => (
-                        <tr
-                          key={entry.id}
-                          className={`border-b border-copper/10 last:border-0 ${
-                            entry.paid_at ? "opacity-75" : ""
-                          }`}
-                        >
-                          <td className="px-3 py-2.5 align-middle">
+                      {pagedEntries.map((entry) => {
+                        const isExpense = entry.category?.kind === "expense";
+                        return (
+                          <tr
+                            key={entry.id}
+                            className={`border-b border-copper/10 last:border-0 ${
+                              isExpense && entry.paid_at ? "opacity-75" : ""
+                            }`}
+                          >
+                            <td className="px-3 py-2.5 align-middle">
+                              {isExpense ? (
+                                <button
+                                  type="button"
+                                  className={`flex h-6 w-6 items-center justify-center rounded-full border text-xs transition ${
+                                    entry.paid_at
+                                      ? "border-copper/60 bg-copper/25 text-copper-bright"
+                                      : "border-copper/25 text-transparent hover:border-copper/50 hover:text-copper/40"
+                                  }`}
+                                  disabled={busy}
+                                  onClick={() => handleTogglePaid(entry)}
+                                  title={
+                                    entry.paid_at
+                                      ? "Pago — clique para desmarcar"
+                                      : "Marcar como pago"
+                                  }
+                                  aria-label={
+                                    entry.paid_at
+                                      ? "Desmarcar pagamento"
+                                      : "Marcar como pago"
+                                  }
+                                >
+                                  ✓
+                                </button>
+                              ) : (
+                                <span className="text-[10px] uppercase tracking-wider text-ash-600">
+                                  —
+                                </span>
+                              )}
+                            </td>
+                            <td className="max-w-[12rem] px-3 py-2.5 align-middle">
+                              <span className="font-medium text-ash-200">
+                                {entryTitle(entry)}
+                              </span>
+                              {entry.recurrence ||
+                              (isExpense && entry.paid_at) ? (
+                                <span className="mt-0.5 flex flex-wrap gap-1">
+                                  {entry.recurrence ? (
+                                    <span className="rounded border border-copper/25 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-copper/90">
+                                      {RECURRENCE_SHORT[entry.recurrence] ||
+                                        "recorrente"}
+                                    </span>
+                                  ) : null}
+                                  {isExpense && entry.paid_at ? (
+                                    <span className="rounded border border-copper/40 bg-copper/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-copper-bright">
+                                      pago
+                                    </span>
+                                  ) : null}
+                                </span>
+                              ) : null}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-2.5 align-middle text-ash-400">
+                              {entry.category?.name || "—"}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-2.5 align-middle tabular-nums text-ash-400">
+                              {formatDayShort(entry.occurred_on)}
+                            </td>
+                            <td
+                              className={`whitespace-nowrap px-3 py-2.5 align-middle text-right font-display tabular-nums ${
+                                entry.category?.kind === "income"
+                                  ? "text-copper-bright"
+                                  : "text-ember-soft"
+                              }`}
+                            >
+                              {entry.category?.kind === "income" ? "+" : "−"}
+                              {formatBrl(entry.amount_cents)}
+                            </td>
+                            <td className="px-3 py-2.5 align-middle">
+                              <div className="flex flex-wrap justify-end gap-1">
+                                <button
+                                  type="button"
+                                  className="btn-ghost px-2 py-1 text-xs"
+                                  disabled={busy}
+                                  onClick={() => startEdit(entry)}
+                                >
+                                  Editar
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn-ghost px-2 py-1 text-xs text-ember-soft"
+                                  disabled={busy}
+                                  onClick={() => handleDelete(entry.id)}
+                                >
+                                  Apagar
+                                </button>
+                                {entry.series_id ? (
+                                  <button
+                                    type="button"
+                                    className="btn-ghost px-2 py-1 text-xs text-ember-soft"
+                                    disabled={busy}
+                                    onClick={() =>
+                                      handleDelete(entry.id, {
+                                        deleteSeries: true,
+                                      })
+                                    }
+                                    title="Remove este e os próximos da série"
+                                  >
+                                    Série
+                                  </button>
+                                ) : null}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <ul className="space-y-2">
+                  {pagedEntries.map((entry) => {
+                    const isExpense = entry.category?.kind === "expense";
+                    return (
+                      <li
+                        key={entry.id}
+                        className={`panel flex flex-wrap items-start justify-between gap-3 p-4 ${
+                          isExpense && entry.paid_at ? "opacity-75" : ""
+                        }`}
+                      >
+                        <div className="flex min-w-0 items-start gap-3">
+                          {isExpense ? (
                             <button
                               type="button"
-                              className={`flex h-6 w-6 items-center justify-center rounded-full border text-xs transition ${
+                              className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs transition ${
                                 entry.paid_at
                                   ? "border-copper/60 bg-copper/25 text-copper-bright"
                                   : "border-copper/25 text-transparent hover:border-copper/50 hover:text-copper/40"
@@ -1284,35 +1813,33 @@ export default function FinancePanel() {
                             >
                               ✓
                             </button>
-                          </td>
-                          <td className="max-w-[12rem] px-3 py-2.5 align-middle">
-                            <span className="font-medium text-ash-200">
+                          ) : null}
+                          <div className="min-w-0 space-y-0.5">
+                            <p className="font-medium text-ash-200">
                               {entryTitle(entry)}
-                            </span>
-                            {entry.recurrence || entry.paid_at ? (
-                              <span className="mt-0.5 flex flex-wrap gap-1">
-                                {entry.recurrence ? (
-                                  <span className="rounded border border-copper/25 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-copper/90">
-                                    {RECURRENCE_SHORT[entry.recurrence] ||
-                                      "recorrente"}
-                                  </span>
-                                ) : null}
-                                {entry.paid_at ? (
-                                  <span className="rounded border border-copper/40 bg-copper/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-copper-bright">
-                                    pago
-                                  </span>
-                                ) : null}
-                              </span>
-                            ) : null}
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-2.5 align-middle text-ash-400">
-                            {entry.category?.name || "—"}
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-2.5 align-middle tabular-nums text-ash-400">
-                            {formatDayShort(entry.occurred_on)}
-                          </td>
-                          <td
-                            className={`whitespace-nowrap px-3 py-2.5 align-middle text-right font-display tabular-nums ${
+                              {entry.recurrence ? (
+                                <span className="ml-2 rounded border border-copper/25 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-copper/90">
+                                  {RECURRENCE_SHORT[entry.recurrence] ||
+                                    "recorrente"}
+                                </span>
+                              ) : null}
+                              {isExpense && entry.paid_at ? (
+                                <span className="ml-2 rounded border border-copper/40 bg-copper/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-copper-bright">
+                                  pago
+                                </span>
+                              ) : null}
+                            </p>
+                            <p className="text-xs text-ash-500">
+                              {formatDayShort(entry.occurred_on)}
+                              {entry.category?.name
+                                ? ` · ${entry.category.name}`
+                                : ""}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span
+                            className={`font-display text-lg tabular-nums ${
                               entry.category?.kind === "income"
                                 ? "text-copper-bright"
                                 : "text-ember-soft"
@@ -1320,147 +1847,68 @@ export default function FinancePanel() {
                           >
                             {entry.category?.kind === "income" ? "+" : "−"}
                             {formatBrl(entry.amount_cents)}
-                          </td>
-                          <td className="px-3 py-2.5 align-middle">
-                            <div className="flex flex-wrap justify-end gap-1">
-                              <button
-                                type="button"
-                                className="btn-ghost px-2 py-1 text-xs"
-                                disabled={busy}
-                                onClick={() => startEdit(entry)}
-                              >
-                                Editar
-                              </button>
-                              <button
-                                type="button"
-                                className="btn-ghost px-2 py-1 text-xs text-ember-soft"
-                                disabled={busy}
-                                onClick={() => handleDelete(entry.id)}
-                              >
-                                Apagar
-                              </button>
-                              {entry.series_id ? (
-                                <button
-                                  type="button"
-                                  className="btn-ghost px-2 py-1 text-xs text-ember-soft"
-                                  disabled={busy}
-                                  onClick={() =>
-                                    handleDelete(entry.id, {
-                                      deleteSeries: true,
-                                    })
-                                  }
-                                  title="Remove este e os próximos da série"
-                                >
-                                  Série
-                                </button>
-                              ) : null}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <ul className="space-y-2">
-                  {filteredEntries.map((entry) => (
-                    <li
-                      key={entry.id}
-                      className={`panel flex flex-wrap items-start justify-between gap-3 p-4 ${
-                        entry.paid_at ? "opacity-75" : ""
-                      }`}
-                    >
-                      <div className="flex min-w-0 items-start gap-3">
-                        <button
-                          type="button"
-                          className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs transition ${
-                            entry.paid_at
-                              ? "border-copper/60 bg-copper/25 text-copper-bright"
-                              : "border-copper/25 text-transparent hover:border-copper/50 hover:text-copper/40"
-                          }`}
-                          disabled={busy}
-                          onClick={() => handleTogglePaid(entry)}
-                          title={
-                            entry.paid_at
-                              ? "Pago — clique para desmarcar"
-                              : "Marcar como pago"
-                          }
-                          aria-label={
-                            entry.paid_at
-                              ? "Desmarcar pagamento"
-                              : "Marcar como pago"
-                          }
-                        >
-                          ✓
-                        </button>
-                        <div className="min-w-0 space-y-0.5">
-                          <p className="font-medium text-ash-200">
-                            {entryTitle(entry)}
-                            {entry.recurrence ? (
-                              <span className="ml-2 rounded border border-copper/25 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-copper/90">
-                                {RECURRENCE_SHORT[entry.recurrence] ||
-                                  "recorrente"}
-                              </span>
-                            ) : null}
-                            {entry.paid_at ? (
-                              <span className="ml-2 rounded border border-copper/40 bg-copper/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-copper-bright">
-                                pago
-                              </span>
-                            ) : null}
-                          </p>
-                          <p className="text-xs text-ash-500">
-                            {formatDayShort(entry.occurred_on)}
-                            {entry.category?.name
-                              ? ` · ${entry.category.name}`
-                              : ""}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span
-                          className={`font-display text-lg tabular-nums ${
-                            entry.category?.kind === "income"
-                              ? "text-copper-bright"
-                              : "text-ember-soft"
-                          }`}
-                        >
-                          {entry.category?.kind === "income" ? "+" : "−"}
-                          {formatBrl(entry.amount_cents)}
-                        </span>
-                        <button
-                          type="button"
-                          className="btn-ghost px-2 py-1 text-xs"
-                          disabled={busy}
-                          onClick={() => startEdit(entry)}
-                        >
-                          Editar
-                        </button>
-                        <button
-                          type="button"
-                          className="btn-ghost px-2 py-1 text-xs text-ember-soft"
-                          disabled={busy}
-                          onClick={() => handleDelete(entry.id)}
-                        >
-                          Apagar
-                        </button>
-                        {entry.series_id ? (
+                          </span>
+                          <button
+                            type="button"
+                            className="btn-ghost px-2 py-1 text-xs"
+                            disabled={busy}
+                            onClick={() => startEdit(entry)}
+                          >
+                            Editar
+                          </button>
                           <button
                             type="button"
                             className="btn-ghost px-2 py-1 text-xs text-ember-soft"
                             disabled={busy}
-                            onClick={() =>
-                              handleDelete(entry.id, { deleteSeries: true })
-                            }
-                            title="Remove este e os próximos da série"
+                            onClick={() => handleDelete(entry.id)}
                           >
-                            Apagar série
+                            Apagar
                           </button>
-                        ) : null}
-                      </div>
-                    </li>
-                  ))}
+                          {entry.series_id ? (
+                            <button
+                              type="button"
+                              className="btn-ghost px-2 py-1 text-xs text-ember-soft"
+                              disabled={busy}
+                              onClick={() =>
+                                handleDelete(entry.id, { deleteSeries: true })
+                              }
+                              title="Remove este e os próximos da série"
+                            >
+                              Apagar série
+                            </button>
+                          ) : null}
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
+
+              {!monthLoading && filteredEntries.length > LIST_PAGE_SIZE ? (
+                <div className="flex items-center justify-between gap-2 pt-1">
+                  <button
+                    type="button"
+                    className="btn-ghost px-3 py-1.5 text-sm"
+                    disabled={busy || safeListPage <= 0}
+                    onClick={() => setListPage((p) => Math.max(0, p - 1))}
+                  >
+                    Anterior
+                  </button>
+                  <p className="text-xs tabular-nums text-ash-500">
+                    Página {safeListPage + 1} de {listPageCount}
+                  </p>
+                  <button
+                    type="button"
+                    className="btn-ghost px-3 py-1.5 text-sm"
+                    disabled={busy || safeListPage >= listPageCount - 1}
+                    onClick={() =>
+                      setListPage((p) => Math.min(listPageCount - 1, p + 1))
+                    }
+                  >
+                    Próxima
+                  </button>
+                </div>
+              ) : null}
             </section>
           ) : null}
 

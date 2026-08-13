@@ -445,6 +445,7 @@ export async function createFinanceEntry(
     note,
     recurrence = null,
     recurrenceDuration = null,
+    paid = false,
   }
 ) {
   const cents =
@@ -458,7 +459,7 @@ export async function createFinanceEntry(
     recurrence && VALID_RECURRENCE.has(recurrence) ? recurrence : null;
 
   const supabase = createAdminClient();
-  await assertCategoryOwned(supabase, championId, categoryId);
+  const category = await assertCategoryOwned(supabase, championId, categoryId);
 
   const noteVal = note ? String(note).trim().slice(0, 280) : null;
   const windowOpts = recur
@@ -468,6 +469,11 @@ export async function createFinanceEntry(
     ? expandRecurrenceDates(date, recur, windowOpts)
     : [date];
   const seriesId = recur ? randomUUID() : null;
+  // Entradas já entram como recebidas; saídas só se paid=true.
+  const paidAt =
+    category.kind === "income" || paid
+      ? new Date().toISOString()
+      : null;
 
   const rows = dates.map((occurred_on) => ({
     champion_id: championId,
@@ -477,6 +483,7 @@ export async function createFinanceEntry(
     note: noteVal,
     recurrence: recur,
     series_id: seriesId,
+    paid_at: paidAt,
   }));
 
   const { data, error } = await supabase
@@ -539,6 +546,18 @@ export async function updateFinanceEntry(
 
 export async function setFinanceEntryPaid(championId, entryId, paid) {
   const supabase = createAdminClient();
+  const { data: existing, error: findErr } = await supabase
+    .from("finance_entries")
+    .select("id, finance_categories!inner(kind)")
+    .eq("id", Number(entryId))
+    .eq("champion_id", championId)
+    .maybeSingle();
+  if (findErr) throw new Error(findErr.message);
+  if (!existing) throw new Error("Lançamento não encontrado");
+  if (existing.finance_categories?.kind === "income") {
+    throw new Error("Entradas não precisam de marcação de pagamento");
+  }
+
   const { data, error } = await supabase
     .from("finance_entries")
     .update({
