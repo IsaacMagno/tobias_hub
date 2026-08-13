@@ -300,13 +300,13 @@ export const TOURS = {
       {
         id: "chart",
         title: "Gráfico do período",
-        body: "Mensal, trimestral, semestral, anual ou intervalo personalizado. Barras comparam entradas e saídas.",
+        body: "Mensal, trimestral, semestral, anual ou intervalo personalizado. No final da página, a pizza mostra o peso de cada categoria.",
         anchor: "tour-finance-chart",
       },
       {
         id: "form",
         title: "Novo lançamento",
-        body: "Valor, data e categoria. Entrada ou saída — categorias padrão já vêm prontas; você pode criar mais.",
+        body: "Valor, data, categoria e, se quiser, recorrência (diária, semanal, mensal ou anual). Categorias padrão já vêm prontas.",
         anchor: "tour-finance-form",
       },
       {

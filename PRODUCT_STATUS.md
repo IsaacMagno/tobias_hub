@@ -88,9 +88,11 @@ Vida
 
 ### 4.5 Finanças (`/finance`) — satélite opt-in
 
-- Lançamentos com **categoria** (entrada / saída); sem carteiras/contas bancárias ainda.
+- Três abas: **Resumo** (períodos, totais, formulário, pizza), **Lançamentos** (mês a mês) e **Categorias**.
+- Lançamentos com **categoria** (entrada / saída); recorrência opcional (diária / semanal / mensal / anual) com duração (presets, personalizada ou até uma data).
+- Aba Lançamentos: navegação ‹ mês › com setas, check de **pago** (`paid_at`), filtros por status / tipo / categoria e ordenação por data ou valor.
 - Categorias padrão na 1ª abertura; criar e arquivar.
-- Gráficos CSS: mensal · trimestral · semestral · anual · intervalo personalizado.
+- Gráfico de pizza por categoria (saídas ou entradas); períodos: mensal · trimestral · semestral · anual · personalizado.
 - Totais do período (entradas, saídas, saldo).
 - **Não** altera o motor Continuar; coexiste com campanhas de hábitos financeiros.
 

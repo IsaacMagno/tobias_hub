@@ -86,6 +86,7 @@ import {
   listFinanceEntries,
   createFinanceEntry,
   updateFinanceEntry,
+  setFinanceEntryPaid,
   deleteFinanceEntry,
   getFinanceChart,
 } from "@/lib/services/finance";
@@ -566,9 +567,16 @@ export async function actionUpdateFinanceEntry(entryId, payload) {
   );
 }
 
-export async function actionDeleteFinanceEntry(entryId) {
+export async function actionSetFinanceEntryPaid(entryId, paid) {
   const session = await requireChampionSession();
-  return deleteFinanceEntry(session.user.champion_id, entryId);
+  return setFinanceEntryPaid(session.user.champion_id, entryId, Boolean(paid));
+}
+
+export async function actionDeleteFinanceEntry(entryId, opts = {}) {
+  const session = await requireChampionSession();
+  return deleteFinanceEntry(session.user.champion_id, entryId, {
+    deleteSeries: Boolean(opts?.deleteSeries),
+  });
 }
 
 export async function fetchFinanceChart({ period, from, to, anchor } = {}) {

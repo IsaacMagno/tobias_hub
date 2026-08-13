@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { BusyRail, Spinner } from "@/components/LoadingUI";
 import EmptyState from "@/components/EmptyState";
@@ -11,9 +11,16 @@ import {
   fetchFinanceEntries,
   actionCreateFinanceEntry,
   actionUpdateFinanceEntry,
+  actionSetFinanceEntryPaid,
   actionDeleteFinanceEntry,
   fetchFinanceChart,
 } from "../../services/requests";
+
+const TABS = [
+  { id: "resumo", label: "Resumo" },
+  { id: "lancamentos", label: "Lançamentos" },
+  { id: "categorias", label: "Categorias" },
+];
 
 const PERIODS = [
   { id: "month", label: "Mensal" },
@@ -23,7 +30,39 @@ const PERIODS = [
   { id: "custom", label: "Personalizado" },
 ];
 
-const PAGE_SIZE = 20;
+const MONTH_FETCH_LIMIT = 500;
+
+const PIE_COLORS = [
+  "#c4a574",
+  "#b54a2e",
+  "#d4785c",
+  "#e0c896",
+  "#8a7349",
+  "#9a9188",
+  "#c4bbb0",
+  "#3d3630",
+  "#655d55",
+  "#7f766d",
+];
+
+const STATUS_FILTERS = [
+  { id: "all", label: "Todos" },
+  { id: "unpaid", label: "Pendentes" },
+  { id: "paid", label: "Pagos" },
+];
+
+const KIND_FILTERS = [
+  { id: "all", label: "Tudo" },
+  { id: "expense", label: "Saídas" },
+  { id: "income", label: "Entradas" },
+];
+
+const SORT_OPTIONS = [
+  { id: "date_desc", label: "Mais recentes" },
+  { id: "date_asc", label: "Mais antigos" },
+  { id: "amount_desc", label: "Maior valor" },
+  { id: "amount_asc", label: "Menor valor" },
+];
 
 function formatBrl(cents) {
   const n = Number(cents || 0) / 100;
@@ -41,6 +80,27 @@ function todayKey() {
   return `${y}-${m}-${day}`;
 }
 
+function formatDayShort(dateKey) {
+  if (!dateKey) return "";
+  const [, m, d] = dateKey.split("-");
+  return `${d}/${m}`;
+}
+
+/** Nota como “nome” do lançamento; sem nota, cai na categoria. */
+function entryTitle(entry) {
+  const note = entry?.note ? String(entry.note).trim() : "";
+  if (note) return note;
+  return entry?.category?.name || "Sem descrição";
+}
+
+function monthLabel({ y, m }) {
+  const label = new Date(y, m - 1, 1).toLocaleDateString("pt-BR", {
+    month: "long",
+    year: "numeric",
+  });
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
 function emptyForm() {
   return {
     kind: "expense",
@@ -48,12 +108,198 @@ function emptyForm() {
     amount: "",
     occurredOn: todayKey(),
     note: "",
+    recurrence: "",
+    durationKey: "default",
+    customValue: "3",
+    customUnit: "month",
+    untilDate: "",
   };
 }
 
+const RECURRENCE_OPTIONS = [
+  { id: "", label: "Não repetir" },
+  { id: "daily", label: "Diariamente" },
+  { id: "weekly", label: "Semanalmente" },
+  { id: "monthly", label: "Mensalmente" },
+  { id: "yearly", label: "Anualmente" },
+];
+
+const RECURRENCE_SHORT = {
+  daily: "diário",
+  weekly: "semanal",
+  monthly: "mensal",
+  yearly: "anual",
+};
+
+const DURATION_PRESETS = {
+  daily: [
+    { id: "count:3", label: "Por 3 dias" },
+    { id: "count:7", label: "Por 7 dias" },
+    { id: "count:14", label: "Por 14 dias" },
+    { id: "count:30", label: "Por 30 dias" },
+    { id: "count:90", label: "Por 90 dias" },
+  ],
+  weekly: [
+    { id: "count:4", label: "Por 4 semanas" },
+    { id: "count:8", label: "Por 8 semanas" },
+    { id: "count:12", label: "Por 12 semanas" },
+    { id: "count:26", label: "Por 26 semanas" },
+  ],
+  monthly: [
+    { id: "count:3", label: "Por 3 meses" },
+    { id: "count:6", label: "Por 6 meses" },
+    { id: "count:12", label: "Por 12 meses" },
+    { id: "count:24", label: "Por 24 meses" },
+  ],
+  yearly: [
+    { id: "count:2", label: "Por 2 anos" },
+    { id: "count:5", label: "Por 5 anos" },
+    { id: "count:10", label: "Por 10 anos" },
+  ],
+};
+
+const CUSTOM_UNITS = [
+  { id: "day", label: "dias" },
+  { id: "week", label: "semanas" },
+  { id: "month", label: "meses" },
+  { id: "year", label: "anos" },
+];
+
+const DEFAULT_CUSTOM_UNIT = {
+  daily: "day",
+  weekly: "week",
+  monthly: "month",
+  yearly: "year",
+};
+
+function buildRecurrenceDuration(form) {
+  if (!form.recurrence) return null;
+  const key = form.durationKey || "default";
+  if (key === "default") return { mode: "default" };
+  if (key === "custom") {
+    return {
+      mode: "span",
+      value: Number(form.customValue) || 1,
+      unit: form.customUnit || "month",
+    };
+  }
+  if (key === "until") {
+    return { mode: "until", until: form.untilDate || null };
+  }
+  if (key.startsWith("count:")) {
+    return {
+      mode: "count",
+      count: Number(key.slice(6)) || 1,
+    };
+  }
+  return { mode: "default" };
+}
+
+function polarToCartesian(cx, cy, r, angleDeg) {
+  const rad = ((angleDeg - 90) * Math.PI) / 180;
+  return {
+    x: Math.round((cx + r * Math.cos(rad)) * 100) / 100,
+    y: Math.round((cy + r * Math.sin(rad)) * 100) / 100,
+  };
+}
+
+function describeSlice(cx, cy, r, startAngle, endAngle) {
+  const start = polarToCartesian(cx, cy, r, startAngle);
+  const end = polarToCartesian(cx, cy, r, endAngle);
+  const large = endAngle - startAngle > 180 ? 1 : 0;
+  return `M ${cx} ${cy} L ${start.x} ${start.y} A ${r} ${r} 0 ${large} 1 ${end.x} ${end.y} Z`;
+}
+
+function FinancePie({ slices }) {
+  const total = slices.reduce((s, x) => s + x.amount_cents, 0);
+  if (!total) return null;
+
+  const cx = 100;
+  const cy = 100;
+  const r = 90;
+  let angle = 0;
+  const paths = [];
+
+  if (slices.length === 1) {
+    paths.push({
+      ...slices[0],
+      d: null,
+      color: PIE_COLORS[0],
+      pct: 100,
+    });
+  } else {
+    slices.forEach((slice, i) => {
+      const sweep = (slice.amount_cents / total) * 360;
+      const start = angle;
+      const end = Math.min(angle + sweep, 360);
+      paths.push({
+        ...slice,
+        d: describeSlice(cx, cy, r, start, end),
+        color: PIE_COLORS[i % PIE_COLORS.length],
+        pct: Math.round((slice.amount_cents / total) * 1000) / 10,
+      });
+      angle = end;
+    });
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-start">
+      <svg
+        viewBox="0 0 200 200"
+        className="h-48 w-48 shrink-0"
+        role="img"
+        aria-label="Gráfico de pizza por categoria"
+      >
+        {paths.map((p) =>
+          p.d ? (
+            <path
+              key={`${p.kind}-${p.id}`}
+              d={p.d}
+              fill={p.color}
+              stroke="#0a0908"
+              strokeWidth="1.5"
+            />
+          ) : (
+            <circle
+              key={`${p.kind}-${p.id}`}
+              cx={cx}
+              cy={cy}
+              r={r}
+              fill={p.color}
+              stroke="#0a0908"
+              strokeWidth="1.5"
+            />
+          )
+        )}
+      </svg>
+      <ul className="w-full min-w-0 space-y-2">
+        {paths.map((p) => (
+          <li
+            key={`leg-${p.kind}-${p.id}`}
+            className="flex items-center justify-between gap-3 text-sm"
+          >
+            <span className="flex min-w-0 items-center gap-2 text-ash-200">
+              <span
+                className="h-2.5 w-2.5 shrink-0 rounded-sm"
+                style={{ backgroundColor: p.color }}
+                aria-hidden
+              />
+              <span className="truncate">{p.name}</span>
+            </span>
+            <span className="shrink-0 tabular-nums text-ash-400">
+              {p.pct}% · {formatBrl(p.amount_cents)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export default function FinancePanel() {
+  const [tab, setTab] = useState("resumo");
+
   const [categories, setCategories] = useState([]);
-  const [entries, setEntries] = useState([]);
   const [chart, setChart] = useState(null);
   const [loading, setLoading] = useState(true);
   const [rail, setRail] = useState("");
@@ -65,16 +311,38 @@ export default function FinancePanel() {
 
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
-  const [offset, setOffset] = useState(0);
-  const [hasMore, setHasMore] = useState(false);
 
   const [catName, setCatName] = useState("");
   const [catKind, setCatKind] = useState("expense");
+  const [pieKind, setPieKind] = useState("expense");
+
+  const now = new Date();
+  const [monthCursor, setMonthCursor] = useState({
+    y: now.getFullYear(),
+    m: now.getMonth() + 1,
+  });
+  const [monthEntries, setMonthEntries] = useState([]);
+  const [monthLoading, setMonthLoading] = useState(false);
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterKind, setFilterKind] = useState("all");
+  const [filterCategory, setFilterCategory] = useState("all");
+  const [sortBy, setSortBy] = useState("date_desc");
+  const [listView, setListView] = useState("cards");
 
   const categoriesForKind = useMemo(
     () => categories.filter((c) => c.kind === form.kind && !c.archived_at),
     [categories, form.kind]
   );
+
+  const monthRange = useMemo(() => {
+    const { y, m } = monthCursor;
+    const mm = String(m).padStart(2, "0");
+    const lastDay = new Date(y, m, 0).getDate();
+    return {
+      from: `${y}-${mm}-01`,
+      to: `${y}-${mm}-${String(lastDay).padStart(2, "0")}`,
+    };
+  }, [monthCursor]);
 
   const loadCategories = useCallback(async () => {
     const rows = await fetchFinanceCategories();
@@ -83,60 +351,56 @@ export default function FinancePanel() {
   }, []);
 
   const loadChart = useCallback(async () => {
-    const payload =
-      period === "custom"
-        ? { period: "custom", from: customFrom, to: customTo }
-        : { period };
     if (period === "custom" && (!customFrom || !customTo)) {
       setChart(null);
       return;
     }
+    const payload =
+      period === "custom"
+        ? { period: "custom", from: customFrom, to: customTo }
+        : { period };
     const data = await fetchFinanceChart(payload);
     setChart(data);
   }, [period, customFrom, customTo]);
 
-  const loadEntries = useCallback(
-    async (nextOffset = 0, append = false) => {
-      const rows = await fetchFinanceEntries({
-        limit: PAGE_SIZE,
-        offset: nextOffset,
-        from: chart?.from || null,
-        to: chart?.to || null,
-      });
-      setHasMore((rows || []).length === PAGE_SIZE);
-      setOffset(nextOffset);
-      setEntries((prev) => (append ? [...prev, ...(rows || [])] : rows || []));
-    },
-    [chart?.from, chart?.to]
-  );
-
-  const refreshAll = useCallback(async () => {
-    setLoading(true);
-    setRail("Carregando finanças…");
-    try {
-      const cats = await loadCategories();
-      await loadChart();
-      // entries reload after chart sets range — handled in effect below on first load
-      if (!form.categoryId && cats.length) {
-        const firstExpense = cats.find((c) => c.kind === "expense");
-        if (firstExpense) {
-          setForm((f) => ({ ...f, categoryId: String(firstExpense.id) }));
-        }
-      }
-    } catch (err) {
-      toast.error(err.message || "Falha ao carregar");
-    } finally {
-      setRail("");
-      setLoading(false);
-    }
-  }, [loadCategories, loadChart, form.categoryId]);
-
   useEffect(() => {
-    refreshAll();
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setRail("Carregando finanças…");
+      try {
+        const cats = await loadCategories();
+        if (cancelled) return;
+        if (cats.length) {
+          setForm((f) => {
+            if (f.categoryId) return f;
+            const firstExpense = cats.find((c) => c.kind === "expense");
+            return firstExpense
+              ? { ...f, categoryId: String(firstExpense.id) }
+              : f;
+          });
+        }
+        await loadChart();
+      } catch (err) {
+        if (!cancelled) toast.error(err.message || "Falha ao carregar");
+      } finally {
+        setRail("");
+        setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Recarrega gráfico quando o período muda (pula a 1ª montagem — já coberta acima)
+  const chartReady = useRef(false);
   useEffect(() => {
+    if (!chartReady.current) {
+      chartReady.current = true;
+      return undefined;
+    }
     let cancelled = false;
     (async () => {
       try {
@@ -153,29 +417,54 @@ export default function FinancePanel() {
     };
   }, [loadChart]);
 
+  // Lançamentos do mês: só busca ao abrir a aba (evita corrida com o load inicial)
+  const monthFetchSeq = useRef(0);
   useEffect(() => {
-    if (!chart?.from) return undefined;
-    let cancelled = false;
-    (async () => {
-      try {
-        const rows = await fetchFinanceEntries({
-          limit: PAGE_SIZE,
-          offset: 0,
-          from: chart.from,
-          to: chart.to,
-        });
-        if (cancelled) return;
-        setEntries(rows || []);
-        setOffset(0);
-        setHasMore((rows || []).length === PAGE_SIZE);
-      } catch (err) {
-        if (!cancelled) toast.error(err.message || "Falha nos lançamentos");
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [chart?.from, chart?.to]);
+    if (tab !== "lancamentos") return undefined;
+    const seq = ++monthFetchSeq.current;
+    const { from, to } = monthRange;
+    setMonthLoading(true);
+    fetchFinanceEntries({
+      limit: MONTH_FETCH_LIMIT,
+      offset: 0,
+      from,
+      to,
+    })
+      .then((rows) => {
+        if (seq !== monthFetchSeq.current) return;
+        setMonthEntries(Array.isArray(rows) ? rows : []);
+      })
+      .catch((err) => {
+        if (seq !== monthFetchSeq.current) return;
+        setMonthEntries([]);
+        toast.error(err?.message || "Falha nos lançamentos");
+      })
+      .finally(() => {
+        if (seq === monthFetchSeq.current) setMonthLoading(false);
+      });
+    return undefined;
+  }, [tab, monthRange.from, monthRange.to]);
+
+  const loadMonthEntries = useCallback(async () => {
+    const seq = ++monthFetchSeq.current;
+    setMonthLoading(true);
+    try {
+      const rows = await fetchFinanceEntries({
+        limit: MONTH_FETCH_LIMIT,
+        offset: 0,
+        from: monthRange.from,
+        to: monthRange.to,
+      });
+      if (seq !== monthFetchSeq.current) return;
+      setMonthEntries(Array.isArray(rows) ? rows : []);
+    } catch (err) {
+      if (seq !== monthFetchSeq.current) return;
+      setMonthEntries([]);
+      toast.error(err?.message || "Falha nos lançamentos");
+    } finally {
+      if (seq === monthFetchSeq.current) setMonthLoading(false);
+    }
+  }, [monthRange.from, monthRange.to]);
 
   useEffect(() => {
     const stillValid = categoriesForKind.some(
@@ -202,26 +491,15 @@ export default function FinancePanel() {
     }
   };
 
-  const reloadPeriodData = async () => {
-    const data = await fetchFinanceChart(
-      period === "custom"
-        ? { period: "custom", from: customFrom, to: customTo }
-        : { period }
-    );
-    setChart(data);
-    if (!data?.from) {
-      setEntries([]);
-      return;
-    }
-    const rows = await fetchFinanceEntries({
-      limit: PAGE_SIZE,
-      offset: 0,
-      from: data.from,
-      to: data.to,
+  const reloadData = async () => {
+    await Promise.all([loadChart(), loadMonthEntries()]);
+  };
+
+  const shiftMonth = (delta) => {
+    setMonthCursor(({ y, m }) => {
+      const d = new Date(y, m - 1 + delta, 1);
+      return { y: d.getFullYear(), m: d.getMonth() + 1 };
     });
-    setEntries(rows || []);
-    setOffset(0);
-    setHasMore((rows || []).length === PAGE_SIZE);
   };
 
   const handleSubmitEntry = (e) => {
@@ -230,49 +508,89 @@ export default function FinancePanel() {
       toast.error("Escolha uma categoria");
       return;
     }
-    return withBusy(
-      editingId ? "Salvando…" : "Registrando…",
-      async () => {
-        const payload = {
-          categoryId: Number(form.categoryId),
-          amount: form.amount,
-          occurredOn: form.occurredOn,
-          note: form.note,
-        };
-        if (editingId) {
-          await actionUpdateFinanceEntry(editingId, payload);
-          toast.success("Lançamento atualizado");
-        } else {
-          await actionCreateFinanceEntry(payload);
-          toast.success("Lançamento criado");
-        }
-        setEditingId(null);
-        setForm((f) => ({ ...emptyForm(), kind: f.kind, categoryId: f.categoryId }));
-        await reloadPeriodData();
+    if (
+      !editingId &&
+      form.recurrence &&
+      form.durationKey === "until" &&
+      !form.untilDate
+    ) {
+      toast.error("Escolha até quando repetir");
+      return;
+    }
+    if (
+      !editingId &&
+      form.recurrence &&
+      form.durationKey === "custom" &&
+      !(Number(form.customValue) > 0)
+    ) {
+      toast.error("Informe a duração personalizada");
+      return;
+    }
+    return withBusy(editingId ? "Salvando…" : "Registrando…", async () => {
+      const payload = {
+        categoryId: Number(form.categoryId),
+        amount: form.amount,
+        occurredOn: form.occurredOn,
+        note: form.note,
+        recurrence: editingId ? null : form.recurrence || null,
+        recurrenceDuration: editingId ? null : buildRecurrenceDuration(form),
+      };
+      if (editingId) {
+        await actionUpdateFinanceEntry(editingId, payload);
+        toast.success("Lançamento atualizado");
+      } else {
+        const created = await actionCreateFinanceEntry(payload);
+        const n = created?.created_count || 1;
+        toast.success(
+          n > 1 ? `Série criada · ${n} lançamentos` : "Lançamento criado"
+        );
       }
-    );
+      setEditingId(null);
+      setForm((f) => ({
+        ...emptyForm(),
+        kind: f.kind,
+        categoryId: f.categoryId,
+      }));
+      await reloadData();
+    });
   };
 
   const startEdit = (entry) => {
     setEditingId(entry.id);
     setForm({
+      ...emptyForm(),
       kind: entry.category?.kind || "expense",
       categoryId: String(entry.category_id),
       amount: (entry.amount_cents / 100).toFixed(2).replace(".", ","),
       occurredOn: entry.occurred_on,
       note: entry.note || "",
+      recurrence: "",
     });
+    setTab("resumo");
   };
 
-  const handleDelete = (entryId) =>
-    withBusy("Apagando…", async () => {
-      await actionDeleteFinanceEntry(entryId);
+  const handleTogglePaid = (entry) =>
+    withBusy(entry.paid_at ? "Desmarcando…" : "Marcando como pago…", async () => {
+      const updated = await actionSetFinanceEntryPaid(
+        entry.id,
+        !entry.paid_at
+      );
+      setMonthEntries((prev) =>
+        prev.map((e) => (e.id === updated.id ? updated : e))
+      );
+    });
+
+  const handleDelete = (entryId, { deleteSeries = false } = {}) =>
+    withBusy(deleteSeries ? "Apagando série…" : "Apagando…", async () => {
+      await actionDeleteFinanceEntry(entryId, { deleteSeries });
       if (editingId === entryId) {
         setEditingId(null);
         setForm(emptyForm());
       }
-      toast.success("Lançamento removido");
-      await reloadPeriodData();
+      toast.success(
+        deleteSeries ? "Série removida daqui em diante" : "Lançamento removido"
+      );
+      await reloadData();
     });
 
   const handleCreateCategory = (e) => {
@@ -299,13 +617,60 @@ export default function FinancePanel() {
       await loadCategories();
     });
 
-  const maxBar = Math.max(
-    1,
-    ...((chart?.buckets || []).flatMap((b) => [
-      b.income_cents,
-      b.expense_cents,
-    ]) || [1])
+  const pieSlices = useMemo(
+    () => (chart?.by_category || []).filter((c) => c.kind === pieKind),
+    [chart?.by_category, pieKind]
   );
+
+  const monthCategoryOptions = useMemo(() => {
+    const seen = new Map();
+    for (const e of monthEntries) {
+      if (e.category && !seen.has(e.category.id)) {
+        seen.set(e.category.id, e.category);
+      }
+    }
+    return [...seen.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }, [monthEntries]);
+
+  const filteredEntries = useMemo(() => {
+    let rows = monthEntries;
+    if (filterStatus === "paid") rows = rows.filter((e) => e.paid_at);
+    if (filterStatus === "unpaid") rows = rows.filter((e) => !e.paid_at);
+    if (filterKind !== "all") {
+      rows = rows.filter((e) => e.category?.kind === filterKind);
+    }
+    if (filterCategory !== "all") {
+      rows = rows.filter((e) => String(e.category_id) === filterCategory);
+    }
+    const sorted = [...rows];
+    if (sortBy === "amount_desc") {
+      sorted.sort((a, b) => b.amount_cents - a.amount_cents);
+    } else if (sortBy === "amount_asc") {
+      sorted.sort((a, b) => a.amount_cents - b.amount_cents);
+    } else if (sortBy === "date_asc") {
+      sorted.sort(
+        (a, b) => a.occurred_on.localeCompare(b.occurred_on) || a.id - b.id
+      );
+    } else {
+      sorted.sort(
+        (a, b) => b.occurred_on.localeCompare(a.occurred_on) || b.id - a.id
+      );
+    }
+    return sorted;
+  }, [monthEntries, filterStatus, filterKind, filterCategory, sortBy]);
+
+  const filteredTotals = useMemo(() => {
+    let income = 0;
+    let expense = 0;
+    for (const e of filteredEntries) {
+      if (e.category?.kind === "income") income += e.amount_cents;
+      else expense += e.amount_cents;
+    }
+    return { income, expense };
+  }, [filteredEntries]);
+
+  const hasActiveFilters =
+    filterStatus !== "all" || filterKind !== "all" || filterCategory !== "all";
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 pb-28 lg:pb-10">
@@ -321,411 +686,850 @@ export default function FinancePanel() {
         </p>
       </header>
 
+      <div className="flex gap-1 rounded-xl border border-copper/15 bg-ink-950/50 p-1">
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            className={`flex-1 rounded-lg px-3 py-2 text-sm transition ${
+              tab === t.id
+                ? "bg-copper/20 text-copper-bright"
+                : "text-ash-400 hover:text-ash-300"
+            }`}
+            onClick={() => setTab(t.id)}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       {loading && !chart ? (
         <div className="flex justify-center py-16">
           <Spinner />
         </div>
-      ) : (
+      ) : null}
+
+      {!loading || chart ? (
         <>
-          <section
-            data-tour="tour-finance-summary"
-            className="grid grid-cols-3 gap-2"
-          >
-            <div className="panel p-3 text-center sm:p-4">
-              <p className="text-[10px] uppercase tracking-wider text-ash-500">
-                Entradas
-              </p>
-              <p className="mt-1 font-display text-sm text-ash-200 sm:text-base">
-                {formatBrl(chart?.income_cents)}
-              </p>
-            </div>
-            <div className="panel p-3 text-center sm:p-4">
-              <p className="text-[10px] uppercase tracking-wider text-ash-500">
-                Saídas
-              </p>
-              <p className="mt-1 font-display text-sm text-ash-200 sm:text-base">
-                {formatBrl(chart?.expense_cents)}
-              </p>
-            </div>
-            <div className="panel p-3 text-center sm:p-4">
-              <p className="text-[10px] uppercase tracking-wider text-ash-500">
-                Saldo
-              </p>
-              <p
-                className={`mt-1 font-display text-sm sm:text-base ${
-                  (chart?.balance_cents || 0) >= 0
-                    ? "text-copper-bright"
-                    : "text-ember-soft"
-                }`}
+          {tab === "resumo" ? (
+            <>
+              <section data-tour="tour-finance-summary" className="space-y-4">
+                <div className="flex flex-wrap gap-2">
+                  {PERIODS.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      className={`rounded-full border px-3 py-1 text-xs transition ${
+                        period === p.id
+                          ? "border-copper/50 bg-copper/15 text-copper-bright"
+                          : "border-copper/15 text-ash-400 hover:border-copper/35"
+                      }`}
+                      onClick={() => setPeriod(p.id)}
+                      disabled={busy}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+
+                {period === "custom" ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="space-y-1.5">
+                      <span className="text-xs text-ash-400">De</span>
+                      <input
+                        type="date"
+                        className="input-field"
+                        value={customFrom}
+                        onChange={(e) => setCustomFrom(e.target.value)}
+                      />
+                    </label>
+                    <label className="space-y-1.5">
+                      <span className="text-xs text-ash-400">Até</span>
+                      <input
+                        type="date"
+                        className="input-field"
+                        value={customTo}
+                        onChange={(e) => setCustomTo(e.target.value)}
+                      />
+                    </label>
+                  </div>
+                ) : null}
+
+                {chart?.from && chart?.to ? (
+                  <p className="text-[11px] tabular-nums text-ash-500">
+                    {chart.from} → {chart.to}
+                  </p>
+                ) : null}
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="panel p-3 text-center sm:p-4">
+                    <p className="text-[10px] uppercase tracking-wider text-ash-500">
+                      Entradas
+                    </p>
+                    <p className="mt-1 font-display text-sm text-ash-200 sm:text-base">
+                      {formatBrl(chart?.income_cents)}
+                    </p>
+                  </div>
+                  <div className="panel p-3 text-center sm:p-4">
+                    <p className="text-[10px] uppercase tracking-wider text-ash-500">
+                      Saídas
+                    </p>
+                    <p className="mt-1 font-display text-sm text-ash-200 sm:text-base">
+                      {formatBrl(chart?.expense_cents)}
+                    </p>
+                  </div>
+                  <div className="panel p-3 text-center sm:p-4">
+                    <p className="text-[10px] uppercase tracking-wider text-ash-500">
+                      Saldo
+                    </p>
+                    <p
+                      className={`mt-1 font-display text-sm sm:text-base ${
+                        (chart?.balance_cents || 0) >= 0
+                          ? "text-copper-bright"
+                          : "text-ember-soft"
+                      }`}
+                    >
+                      {formatBrl(chart?.balance_cents)}
+                    </p>
+                  </div>
+                </div>
+              </section>
+
+              <section
+                data-tour="tour-finance-form"
+                className="panel space-y-4 p-5"
               >
-                {formatBrl(chart?.balance_cents)}
-              </p>
-            </div>
-          </section>
+                <h2 className="text-xs uppercase tracking-[0.18em] text-ash-400">
+                  {editingId ? "Editar lançamento" : "Novo lançamento"}
+                </h2>
+                <form onSubmit={handleSubmitEntry} className="space-y-3">
+                  <div className="flex gap-1 rounded-xl border border-copper/15 bg-ink-950/50 p-1">
+                    {[
+                      { id: "expense", label: "Saída" },
+                      { id: "income", label: "Entrada" },
+                    ].map((k) => (
+                      <button
+                        key={k.id}
+                        type="button"
+                        className={`flex-1 rounded-lg px-3 py-2 text-sm transition ${
+                          form.kind === k.id
+                            ? "bg-copper/20 text-copper-bright"
+                            : "text-ash-400 hover:text-ash-300"
+                        }`}
+                        onClick={() => setForm((f) => ({ ...f, kind: k.id }))}
+                        disabled={busy}
+                      >
+                        {k.label}
+                      </button>
+                    ))}
+                  </div>
 
-          <section data-tour="tour-finance-chart" className="panel space-y-4 p-5">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-xs uppercase tracking-[0.18em] text-ash-400">
-                Gráfico
-              </h2>
-              {chart?.from && chart?.to ? (
-                <p className="text-[11px] tabular-nums text-ash-500">
-                  {chart.from} → {chart.to}
-                </p>
-              ) : null}
-            </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="space-y-1.5">
+                      <span className="text-xs text-ash-400">Valor</span>
+                      <input
+                        className="input-field"
+                        inputMode="decimal"
+                        placeholder="0,00"
+                        value={form.amount}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, amount: e.target.value }))
+                        }
+                        required
+                      />
+                    </label>
+                    <label className="space-y-1.5">
+                      <span className="text-xs text-ash-400">Data</span>
+                      <input
+                        type="date"
+                        className="input-field"
+                        value={form.occurredOn}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, occurredOn: e.target.value }))
+                        }
+                        required
+                      />
+                    </label>
+                  </div>
 
-            <div className="flex flex-wrap gap-2">
-              {PERIODS.map((p) => (
+                  <label className="block space-y-1.5">
+                    <span className="text-xs text-ash-400">Categoria</span>
+                    <select
+                      className="input-field"
+                      value={form.categoryId}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, categoryId: e.target.value }))
+                      }
+                      required
+                    >
+                      {categoriesForKind.length === 0 ? (
+                        <option value="">Nenhuma categoria</option>
+                      ) : (
+                        categoriesForKind.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))
+                      )}
+                    </select>
+                  </label>
+
+                  <label className="block space-y-1.5">
+                    <span className="text-xs text-ash-400">Nota (opcional)</span>
+                    <input
+                      className="input-field"
+                      value={form.note}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, note: e.target.value }))
+                      }
+                      maxLength={280}
+                      placeholder="Ex.: mercado da semana"
+                    />
+                  </label>
+
+                  {!editingId ? (
+                    <>
+                      <label className="block space-y-1.5">
+                        <span className="text-xs text-ash-400">Recorrência</span>
+                        <select
+                          className="input-field"
+                          value={form.recurrence}
+                          onChange={(e) => {
+                            const recurrence = e.target.value;
+                            setForm((f) => ({
+                              ...f,
+                              recurrence,
+                              durationKey: "default",
+                              customUnit:
+                                DEFAULT_CUSTOM_UNIT[recurrence] || f.customUnit,
+                              customValue: recurrence === "daily" ? "7" : "3",
+                              untilDate: "",
+                            }));
+                          }}
+                        >
+                          {RECURRENCE_OPTIONS.map((o) => (
+                            <option key={o.id || "none"} value={o.id}>
+                              {o.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      {form.recurrence ? (
+                        <div className="space-y-1.5">
+                          <label className="block space-y-1.5">
+                            <span className="text-xs text-ash-400">Duração</span>
+                            <select
+                              className="input-field"
+                              value={form.durationKey}
+                              onChange={(e) =>
+                                setForm((f) => ({
+                                  ...f,
+                                  durationKey: e.target.value,
+                                }))
+                              }
+                            >
+                              <option value="default">
+                                Padrão (~1 ano
+                                {form.recurrence === "yearly"
+                                  ? " · anual: 5 anos"
+                                  : ""}
+                                )
+                              </option>
+                              {(DURATION_PRESETS[form.recurrence] || []).map(
+                                (p) => (
+                                  <option key={p.id} value={p.id}>
+                                    {p.label}
+                                  </option>
+                                )
+                              )}
+                              <option value="custom">Personalizada…</option>
+                              <option value="until">Até uma data…</option>
+                            </select>
+                          </label>
+
+                          {form.durationKey === "custom" ? (
+                            <div className="flex gap-2">
+                              <input
+                                type="number"
+                                min={1}
+                                max={800}
+                                className="input-field w-24"
+                                value={form.customValue}
+                                onChange={(e) =>
+                                  setForm((f) => ({
+                                    ...f,
+                                    customValue: e.target.value,
+                                  }))
+                                }
+                                aria-label="Quantidade"
+                              />
+                              <select
+                                className="input-field flex-1"
+                                value={form.customUnit}
+                                onChange={(e) =>
+                                  setForm((f) => ({
+                                    ...f,
+                                    customUnit: e.target.value,
+                                  }))
+                                }
+                                aria-label="Unidade"
+                              >
+                                {CUSTOM_UNITS.map((u) => (
+                                  <option key={u.id} value={u.id}>
+                                    {u.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          ) : null}
+
+                          {form.durationKey === "until" ? (
+                            <input
+                              type="date"
+                              className="input-field"
+                              value={form.untilDate}
+                              min={form.occurredOn}
+                              onChange={(e) =>
+                                setForm((f) => ({
+                                  ...f,
+                                  untilDate: e.target.value,
+                                }))
+                              }
+                              required
+                            />
+                          ) : null}
+
+                          <span className="block text-[11px] text-ash-500">
+                            {form.durationKey === "custom"
+                              ? "Repete nessa frequência até completar o período."
+                              : form.durationKey === "until"
+                                ? "Inclui lançamentos até a data escolhida."
+                                : form.durationKey.startsWith("count:")
+                                  ? "Gera exatamente esse número de lançamentos."
+                                  : "Sem duração definida, usa o horizonte padrão."}
+                          </span>
+                        </div>
+                      ) : null}
+                    </>
+                  ) : null}
+
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="submit"
+                      className="btn-primary"
+                      disabled={busy || !form.categoryId}
+                    >
+                      {busy ? (
+                        <>
+                          <Spinner />
+                          Salvando…
+                        </>
+                      ) : editingId ? (
+                        "Salvar alterações"
+                      ) : (
+                        "Registrar"
+                      )}
+                    </button>
+                    {editingId ? (
+                      <button
+                        type="button"
+                        className="btn-ghost"
+                        disabled={busy}
+                        onClick={() => {
+                          setEditingId(null);
+                          setForm(emptyForm());
+                        }}
+                      >
+                        Cancelar
+                      </button>
+                    ) : null}
+                  </div>
+                </form>
+              </section>
+
+              <section
+                data-tour="tour-finance-chart"
+                className="panel space-y-4 p-5"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h2 className="text-xs uppercase tracking-[0.18em] text-ash-400">
+                    Gráfico
+                  </h2>
+                  <div className="flex gap-1 rounded-xl border border-copper/15 bg-ink-950/50 p-1">
+                    {[
+                      { id: "expense", label: "Saídas" },
+                      { id: "income", label: "Entradas" },
+                    ].map((k) => (
+                      <button
+                        key={k.id}
+                        type="button"
+                        className={`rounded-lg px-3 py-1.5 text-xs transition ${
+                          pieKind === k.id
+                            ? "bg-copper/20 text-copper-bright"
+                            : "text-ash-400 hover:text-ash-300"
+                        }`}
+                        onClick={() => setPieKind(k.id)}
+                      >
+                        {k.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {!pieSlices.length ? (
+                  <p className="text-sm text-ash-500">
+                    {period === "custom" && (!customFrom || !customTo)
+                      ? "Escolha as datas do intervalo."
+                      : pieKind === "expense"
+                        ? "Sem saídas neste período para montar a pizza."
+                        : "Sem entradas neste período para montar a pizza."}
+                  </p>
+                ) : (
+                  <FinancePie slices={pieSlices} />
+                )}
+              </section>
+            </>
+          ) : null}
+
+          {tab === "lancamentos" ? (
+            <section data-tour="tour-finance-list" className="space-y-4">
+              <div className="panel flex items-center justify-between gap-2 p-3">
                 <button
-                  key={p.id}
                   type="button"
-                  className={`rounded-full border px-3 py-1 text-xs transition ${
-                    period === p.id
-                      ? "border-copper/50 bg-copper/15 text-copper-bright"
-                      : "border-copper/15 text-ash-400 hover:border-copper/35"
-                  }`}
-                  onClick={() => setPeriod(p.id)}
-                  disabled={busy}
+                  className="btn-ghost px-3 py-1.5 text-lg leading-none"
+                  onClick={() => shiftMonth(-1)}
+                  disabled={busy || monthLoading}
+                  aria-label="Mês anterior"
                 >
-                  {p.label}
+                  ‹
                 </button>
-              ))}
-            </div>
-
-            {period === "custom" ? (
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label className="space-y-1.5">
-                  <span className="text-xs text-ash-400">De</span>
-                  <input
-                    type="date"
-                    className="input-field"
-                    value={customFrom}
-                    onChange={(e) => setCustomFrom(e.target.value)}
-                  />
-                </label>
-                <label className="space-y-1.5">
-                  <span className="text-xs text-ash-400">Até</span>
-                  <input
-                    type="date"
-                    className="input-field"
-                    value={customTo}
-                    onChange={(e) => setCustomTo(e.target.value)}
-                  />
-                </label>
-              </div>
-            ) : null}
-
-            {!chart?.buckets?.length ? (
-              <p className="text-sm text-ash-500">
-                {period === "custom" && (!customFrom || !customTo)
-                  ? "Escolha as datas do intervalo."
-                  : "Sem movimentos neste período."}
-              </p>
-            ) : (
-              <ul className="space-y-3">
-                {chart.buckets.map((b) => (
-                  <li key={b.key} className="space-y-1">
-                    <div className="flex justify-between text-[11px] text-ash-500">
-                      <span>{b.label}</span>
-                      <span className="tabular-nums">
-                        +{formatBrl(b.income_cents)} · −
-                        {formatBrl(b.expense_cents)}
-                      </span>
-                    </div>
-                    <div className="flex h-2 gap-1">
-                      <div className="h-full flex-1 overflow-hidden rounded-full bg-ink-800">
-                        <div
-                          className="h-full rounded-full bg-copper/80"
-                          style={{
-                            width: `${Math.round(
-                              (b.income_cents / maxBar) * 100
-                            )}%`,
-                          }}
-                          title="Entradas"
-                        />
-                      </div>
-                      <div className="h-full flex-1 overflow-hidden rounded-full bg-ink-800">
-                        <div
-                          className="h-full rounded-full bg-ember/70"
-                          style={{
-                            width: `${Math.round(
-                              (b.expense_cents / maxBar) * 100
-                            )}%`,
-                          }}
-                          title="Saídas"
-                        />
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <p className="text-[11px] text-ash-500">
-              Barras: copper = entradas · ember = saídas
-            </p>
-          </section>
-
-          <section data-tour="tour-finance-form" className="panel space-y-4 p-5">
-            <h2 className="text-xs uppercase tracking-[0.18em] text-ash-400">
-              {editingId ? "Editar lançamento" : "Novo lançamento"}
-            </h2>
-            <form onSubmit={handleSubmitEntry} className="space-y-3">
-              <div className="flex gap-1 rounded-xl border border-copper/15 bg-ink-950/50 p-1">
-                {[
-                  { id: "expense", label: "Saída" },
-                  { id: "income", label: "Entrada" },
-                ].map((k) => (
-                  <button
-                    key={k.id}
-                    type="button"
-                    className={`flex-1 rounded-lg px-3 py-2 text-sm transition ${
-                      form.kind === k.id
-                        ? "bg-copper/20 text-copper-bright"
-                        : "text-ash-400 hover:text-ash-300"
-                    }`}
-                    onClick={() => setForm((f) => ({ ...f, kind: k.id }))}
-                    disabled={busy}
-                  >
-                    {k.label}
-                  </button>
-                ))}
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label className="space-y-1.5">
-                  <span className="text-xs text-ash-400">Valor</span>
-                  <input
-                    className="input-field"
-                    inputMode="decimal"
-                    placeholder="0,00"
-                    value={form.amount}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, amount: e.target.value }))
-                    }
-                    required
-                  />
-                </label>
-                <label className="space-y-1.5">
-                  <span className="text-xs text-ash-400">Data</span>
-                  <input
-                    type="date"
-                    className="input-field"
-                    value={form.occurredOn}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, occurredOn: e.target.value }))
-                    }
-                    required
-                  />
-                </label>
-              </div>
-
-              <label className="block space-y-1.5">
-                <span className="text-xs text-ash-400">Categoria</span>
-                <select
-                  className="input-field"
-                  value={form.categoryId}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, categoryId: e.target.value }))
-                  }
-                  required
+                <p className="font-display text-base text-ash-200">
+                  {monthLabel(monthCursor)}
+                </p>
+                <button
+                  type="button"
+                  className="btn-ghost px-3 py-1.5 text-lg leading-none"
+                  onClick={() => shiftMonth(1)}
+                  disabled={busy || monthLoading}
+                  aria-label="Próximo mês"
                 >
-                  {categoriesForKind.length === 0 ? (
-                    <option value="">Nenhuma categoria</option>
-                  ) : (
-                    categoriesForKind.map((c) => (
-                      <option key={c.id} value={c.id}>
+                  ›
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <label className="space-y-1">
+                  <span className="text-[11px] text-ash-500">Status</span>
+                  <select
+                    className="input-field"
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                  >
+                    {STATUS_FILTERS.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="space-y-1">
+                  <span className="text-[11px] text-ash-500">Tipo</span>
+                  <select
+                    className="input-field"
+                    value={filterKind}
+                    onChange={(e) => setFilterKind(e.target.value)}
+                  >
+                    {KIND_FILTERS.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="space-y-1">
+                  <span className="text-[11px] text-ash-500">Categoria</span>
+                  <select
+                    className="input-field"
+                    value={filterCategory}
+                    onChange={(e) => setFilterCategory(e.target.value)}
+                  >
+                    <option value="all">Todas</option>
+                    {monthCategoryOptions.map((c) => (
+                      <option key={c.id} value={String(c.id)}>
                         {c.name}
                       </option>
-                    ))
-                  )}
-                </select>
-              </label>
-
-              <label className="block space-y-1.5">
-                <span className="text-xs text-ash-400">Nota (opcional)</span>
-                <input
-                  className="input-field"
-                  value={form.note}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, note: e.target.value }))
-                  }
-                  maxLength={280}
-                  placeholder="Ex.: mercado da semana"
-                />
-              </label>
-
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="submit"
-                  className="btn-primary"
-                  disabled={busy || !form.categoryId}
-                >
-                  {busy ? (
-                    <>
-                      <Spinner />
-                      Salvando…
-                    </>
-                  ) : editingId ? (
-                    "Salvar alterações"
-                  ) : (
-                    "Registrar"
-                  )}
-                </button>
-                {editingId ? (
-                  <button
-                    type="button"
-                    className="btn-ghost"
-                    disabled={busy}
-                    onClick={() => {
-                      setEditingId(null);
-                      setForm(emptyForm());
-                    }}
+                    ))}
+                  </select>
+                </label>
+                <label className="space-y-1">
+                  <span className="text-[11px] text-ash-500">Ordenar</span>
+                  <select
+                    className="input-field"
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
                   >
-                    Cancelar
-                  </button>
-                ) : null}
+                    {SORT_OPTIONS.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
               </div>
-            </form>
-          </section>
 
-          <section data-tour="tour-finance-list" className="space-y-3">
-            <h2 className="text-xs uppercase tracking-[0.18em] text-ash-400">
-              Lançamentos do período
-            </h2>
-            {!entries.length ? (
-              <div className="panel p-5">
-                <EmptyState
-                  compact
-                  title="Nenhum lançamento"
-                  hint="Registre uma entrada ou saída acima para começar a ver o gráfico."
-                />
-              </div>
-            ) : (
-              <ul className="space-y-2">
-                {entries.map((entry) => (
-                  <li
-                    key={entry.id}
-                    className="panel flex flex-wrap items-start justify-between gap-3 p-4"
-                  >
-                    <div className="min-w-0 space-y-0.5">
-                      <p className="font-medium text-ash-200">
-                        {entry.category?.name || "—"}
-                      </p>
-                      <p className="text-xs text-ash-500">
-                        {entry.occurred_on}
-                        {entry.note ? ` · ${entry.note}` : ""}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`font-display text-lg tabular-nums ${
-                          entry.category?.kind === "income"
-                            ? "text-copper-bright"
-                            : "text-ember-soft"
-                        }`}
-                      >
-                        {entry.category?.kind === "income" ? "+" : "−"}
-                        {formatBrl(entry.amount_cents)}
-                      </span>
-                      <button
-                        type="button"
-                        className="btn-ghost px-2 py-1 text-xs"
-                        disabled={busy}
-                        onClick={() => startEdit(entry)}
-                      >
-                        Editar
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-ghost px-2 py-1 text-xs text-ember-soft"
-                        disabled={busy}
-                        onClick={() => handleDelete(entry.id)}
-                      >
-                        Apagar
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {hasMore ? (
-              <button
-                type="button"
-                className="btn-ghost w-full"
-                disabled={busy}
-                onClick={() =>
-                  withBusy("Carregando…", () =>
-                    loadEntries(offset + PAGE_SIZE, true)
-                  )
-                }
-              >
-                Carregar mais
-              </button>
-            ) : null}
-          </section>
-
-          <section data-tour="tour-finance-categories" className="panel space-y-4 p-5">
-            <h2 className="text-xs uppercase tracking-[0.18em] text-ash-400">
-              Categorias
-            </h2>
-            <form
-              onSubmit={handleCreateCategory}
-              className="flex flex-wrap items-end gap-2"
-            >
-              <label className="min-w-[8rem] flex-1 space-y-1.5">
-                <span className="text-xs text-ash-400">Nova</span>
-                <input
-                  className="input-field"
-                  value={catName}
-                  onChange={(e) => setCatName(e.target.value)}
-                  placeholder="Nome"
-                  required
-                />
-              </label>
-              <label className="space-y-1.5">
-                <span className="text-xs text-ash-400">Tipo</span>
-                <select
-                  className="input-field"
-                  value={catKind}
-                  onChange={(e) => setCatKind(e.target.value)}
-                >
-                  <option value="expense">Saída</option>
-                  <option value="income">Entrada</option>
-                </select>
-              </label>
-              <button type="submit" className="btn-primary" disabled={busy}>
-                Adicionar
-              </button>
-            </form>
-            <ul className="divide-y divide-copper/10">
-              {categories
-                .filter((c) => !c.archived_at)
-                .map((c) => (
-                  <li
-                    key={c.id}
-                    className="flex items-center justify-between gap-2 py-2 text-sm"
-                  >
-                    <span className="text-ash-200">
-                      {c.name}{" "}
-                      <span className="text-xs text-ash-500">
-                        · {c.kind === "income" ? "entrada" : "saída"}
-                      </span>
-                    </span>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                {filteredEntries.length ? (
+                  <p className="text-[11px] tabular-nums text-ash-500">
+                    {filteredEntries.length}{" "}
+                    {filteredEntries.length === 1
+                      ? "lançamento"
+                      : "lançamentos"}
+                    {filteredTotals.expense
+                      ? ` · Saídas ${formatBrl(filteredTotals.expense)}`
+                      : ""}
+                    {filteredTotals.income
+                      ? ` · Entradas ${formatBrl(filteredTotals.income)}`
+                      : ""}
+                  </p>
+                ) : (
+                  <span />
+                )}
+                <div className="flex gap-1 rounded-xl border border-copper/15 bg-ink-950/50 p-1">
+                  {[
+                    { id: "cards", label: "Lista" },
+                    { id: "table", label: "Tabela" },
+                  ].map((v) => (
                     <button
+                      key={v.id}
                       type="button"
-                      className="text-xs text-ash-500 hover:text-ember-soft"
-                      disabled={busy}
-                      onClick={() => handleArchiveCategory(c.id)}
+                      className={`rounded-lg px-3 py-1.5 text-xs transition ${
+                        listView === v.id
+                          ? "bg-copper/20 text-copper-bright"
+                          : "text-ash-400 hover:text-ash-300"
+                      }`}
+                      onClick={() => setListView(v.id)}
                     >
-                      Arquivar
+                      {v.label}
                     </button>
-                  </li>
-                ))}
-            </ul>
-          </section>
+                  ))}
+                </div>
+              </div>
+
+              {monthLoading ? (
+                <div className="flex justify-center py-10">
+                  <Spinner className="h-6 w-6 text-copper" />
+                </div>
+              ) : !filteredEntries.length ? (
+                <div className="panel p-5">
+                  <EmptyState
+                    compact
+                    title={
+                      hasActiveFilters
+                        ? "Nada com esses filtros"
+                        : "Nenhum lançamento neste mês"
+                    }
+                    hint={
+                      hasActiveFilters
+                        ? "Ajuste os filtros acima para ver outros lançamentos."
+                        : "Registre uma entrada ou saída na aba Resumo."
+                    }
+                  />
+                </div>
+              ) : listView === "table" ? (
+                <div className="panel overflow-x-auto">
+                  <table className="w-full min-w-[36rem] border-collapse text-left text-sm">
+                    <thead>
+                      <tr className="border-b border-copper/15 text-[11px] uppercase tracking-wider text-ash-500">
+                        <th className="px-3 py-2.5 font-medium">Pago</th>
+                        <th className="px-3 py-2.5 font-medium">Descrição</th>
+                        <th className="px-3 py-2.5 font-medium">Categoria</th>
+                        <th className="px-3 py-2.5 font-medium">Data</th>
+                        <th className="px-3 py-2.5 font-medium text-right">
+                          Valor
+                        </th>
+                        <th className="px-3 py-2.5 font-medium text-right">
+                          Ações
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredEntries.map((entry) => (
+                        <tr
+                          key={entry.id}
+                          className={`border-b border-copper/10 last:border-0 ${
+                            entry.paid_at ? "opacity-75" : ""
+                          }`}
+                        >
+                          <td className="px-3 py-2.5 align-middle">
+                            <button
+                              type="button"
+                              className={`flex h-6 w-6 items-center justify-center rounded-full border text-xs transition ${
+                                entry.paid_at
+                                  ? "border-copper/60 bg-copper/25 text-copper-bright"
+                                  : "border-copper/25 text-transparent hover:border-copper/50 hover:text-copper/40"
+                              }`}
+                              disabled={busy}
+                              onClick={() => handleTogglePaid(entry)}
+                              title={
+                                entry.paid_at
+                                  ? "Pago — clique para desmarcar"
+                                  : "Marcar como pago"
+                              }
+                              aria-label={
+                                entry.paid_at
+                                  ? "Desmarcar pagamento"
+                                  : "Marcar como pago"
+                              }
+                            >
+                              ✓
+                            </button>
+                          </td>
+                          <td className="max-w-[12rem] px-3 py-2.5 align-middle">
+                            <span className="font-medium text-ash-200">
+                              {entryTitle(entry)}
+                            </span>
+                            {entry.recurrence || entry.paid_at ? (
+                              <span className="mt-0.5 flex flex-wrap gap-1">
+                                {entry.recurrence ? (
+                                  <span className="rounded border border-copper/25 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-copper/90">
+                                    {RECURRENCE_SHORT[entry.recurrence] ||
+                                      "recorrente"}
+                                  </span>
+                                ) : null}
+                                {entry.paid_at ? (
+                                  <span className="rounded border border-copper/40 bg-copper/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-copper-bright">
+                                    pago
+                                  </span>
+                                ) : null}
+                              </span>
+                            ) : null}
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-2.5 align-middle text-ash-400">
+                            {entry.category?.name || "—"}
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-2.5 align-middle tabular-nums text-ash-400">
+                            {formatDayShort(entry.occurred_on)}
+                          </td>
+                          <td
+                            className={`whitespace-nowrap px-3 py-2.5 align-middle text-right font-display tabular-nums ${
+                              entry.category?.kind === "income"
+                                ? "text-copper-bright"
+                                : "text-ember-soft"
+                            }`}
+                          >
+                            {entry.category?.kind === "income" ? "+" : "−"}
+                            {formatBrl(entry.amount_cents)}
+                          </td>
+                          <td className="px-3 py-2.5 align-middle">
+                            <div className="flex flex-wrap justify-end gap-1">
+                              <button
+                                type="button"
+                                className="btn-ghost px-2 py-1 text-xs"
+                                disabled={busy}
+                                onClick={() => startEdit(entry)}
+                              >
+                                Editar
+                              </button>
+                              <button
+                                type="button"
+                                className="btn-ghost px-2 py-1 text-xs text-ember-soft"
+                                disabled={busy}
+                                onClick={() => handleDelete(entry.id)}
+                              >
+                                Apagar
+                              </button>
+                              {entry.series_id ? (
+                                <button
+                                  type="button"
+                                  className="btn-ghost px-2 py-1 text-xs text-ember-soft"
+                                  disabled={busy}
+                                  onClick={() =>
+                                    handleDelete(entry.id, {
+                                      deleteSeries: true,
+                                    })
+                                  }
+                                  title="Remove este e os próximos da série"
+                                >
+                                  Série
+                                </button>
+                              ) : null}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <ul className="space-y-2">
+                  {filteredEntries.map((entry) => (
+                    <li
+                      key={entry.id}
+                      className={`panel flex flex-wrap items-start justify-between gap-3 p-4 ${
+                        entry.paid_at ? "opacity-75" : ""
+                      }`}
+                    >
+                      <div className="flex min-w-0 items-start gap-3">
+                        <button
+                          type="button"
+                          className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs transition ${
+                            entry.paid_at
+                              ? "border-copper/60 bg-copper/25 text-copper-bright"
+                              : "border-copper/25 text-transparent hover:border-copper/50 hover:text-copper/40"
+                          }`}
+                          disabled={busy}
+                          onClick={() => handleTogglePaid(entry)}
+                          title={
+                            entry.paid_at
+                              ? "Pago — clique para desmarcar"
+                              : "Marcar como pago"
+                          }
+                          aria-label={
+                            entry.paid_at
+                              ? "Desmarcar pagamento"
+                              : "Marcar como pago"
+                          }
+                        >
+                          ✓
+                        </button>
+                        <div className="min-w-0 space-y-0.5">
+                          <p className="font-medium text-ash-200">
+                            {entryTitle(entry)}
+                            {entry.recurrence ? (
+                              <span className="ml-2 rounded border border-copper/25 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-copper/90">
+                                {RECURRENCE_SHORT[entry.recurrence] ||
+                                  "recorrente"}
+                              </span>
+                            ) : null}
+                            {entry.paid_at ? (
+                              <span className="ml-2 rounded border border-copper/40 bg-copper/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-copper-bright">
+                                pago
+                              </span>
+                            ) : null}
+                          </p>
+                          <p className="text-xs text-ash-500">
+                            {formatDayShort(entry.occurred_on)}
+                            {entry.category?.name
+                              ? ` · ${entry.category.name}`
+                              : ""}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={`font-display text-lg tabular-nums ${
+                            entry.category?.kind === "income"
+                              ? "text-copper-bright"
+                              : "text-ember-soft"
+                          }`}
+                        >
+                          {entry.category?.kind === "income" ? "+" : "−"}
+                          {formatBrl(entry.amount_cents)}
+                        </span>
+                        <button
+                          type="button"
+                          className="btn-ghost px-2 py-1 text-xs"
+                          disabled={busy}
+                          onClick={() => startEdit(entry)}
+                        >
+                          Editar
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-ghost px-2 py-1 text-xs text-ember-soft"
+                          disabled={busy}
+                          onClick={() => handleDelete(entry.id)}
+                        >
+                          Apagar
+                        </button>
+                        {entry.series_id ? (
+                          <button
+                            type="button"
+                            className="btn-ghost px-2 py-1 text-xs text-ember-soft"
+                            disabled={busy}
+                            onClick={() =>
+                              handleDelete(entry.id, { deleteSeries: true })
+                            }
+                            title="Remove este e os próximos da série"
+                          >
+                            Apagar série
+                          </button>
+                        ) : null}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          ) : null}
+
+          {tab === "categorias" ? (
+            <section
+              data-tour="tour-finance-categories"
+              className="panel space-y-4 p-5"
+            >
+              <h2 className="text-xs uppercase tracking-[0.18em] text-ash-400">
+                Categorias
+              </h2>
+              <form
+                onSubmit={handleCreateCategory}
+                className="flex flex-wrap items-end gap-2"
+              >
+                <label className="min-w-[8rem] flex-1 space-y-1.5">
+                  <span className="text-xs text-ash-400">Nova</span>
+                  <input
+                    className="input-field"
+                    value={catName}
+                    onChange={(e) => setCatName(e.target.value)}
+                    placeholder="Nome"
+                    required
+                  />
+                </label>
+                <label className="space-y-1.5">
+                  <span className="text-xs text-ash-400">Tipo</span>
+                  <select
+                    className="input-field"
+                    value={catKind}
+                    onChange={(e) => setCatKind(e.target.value)}
+                  >
+                    <option value="expense">Saída</option>
+                    <option value="income">Entrada</option>
+                  </select>
+                </label>
+                <button type="submit" className="btn-primary" disabled={busy}>
+                  Adicionar
+                </button>
+              </form>
+              <ul className="divide-y divide-copper/10">
+                {categories
+                  .filter((c) => !c.archived_at)
+                  .map((c) => (
+                    <li
+                      key={c.id}
+                      className="flex items-center justify-between gap-2 py-2 text-sm"
+                    >
+                      <span className="text-ash-200">
+                        {c.name}{" "}
+                        <span className="text-xs text-ash-500">
+                          · {c.kind === "income" ? "entrada" : "saída"}
+                        </span>
+                      </span>
+                      <button
+                        type="button"
+                        className="text-xs text-ash-500 hover:text-ember-soft"
+                        disabled={busy}
+                        onClick={() => handleArchiveCategory(c.id)}
+                      >
+                        Arquivar
+                      </button>
+                    </li>
+                  ))}
+              </ul>
+            </section>
+          ) : null}
         </>
-      )}
+      ) : null}
     </div>
   );
 }

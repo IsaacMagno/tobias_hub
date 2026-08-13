@@ -2,6 +2,7 @@
  * Ledger financeiro: categorias + lançamentos.
  * Sem carteiras/contas bancárias nesta versão.
  */
+import { randomUUID } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { dateKeyInTz } from "@/lib/helpers/habitStreak";
 
@@ -260,6 +261,142 @@ export async function archiveFinanceCategory(championId, categoryId) {
   return data;
 }
 
+const VALID_RECURRENCE = new Set(["daily", "weekly", "monthly", "yearly"]);
+
+function addMonthsKeepingDay(dateKey, months) {
+  const { y, m, d } = parseDateKey(dateKey);
+  const target = new Date(Date.UTC(y, m - 1 + months, 1));
+  const ty = target.getUTCFullYear();
+  const tm = target.getUTCMonth() + 1;
+  const dim = daysInMonth(ty, tm);
+  const day = Math.min(d, dim);
+  return `${ty}-${String(tm).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function addYearsKeepingDay(dateKey, years) {
+  return addMonthsKeepingDay(dateKey, years * 12);
+}
+
+const HARD_CAP = 800;
+
+function defaultMaxOccurrences(recurrence) {
+  if (recurrence === "daily") return 366;
+  if (recurrence === "weekly") return 53;
+  if (recurrence === "monthly") return 13;
+  if (recurrence === "yearly") return 6;
+  return 1;
+}
+
+function nextRecurrenceDate(dateKey, recurrence, step) {
+  if (recurrence === "daily") return addDays(dateKey, step);
+  if (recurrence === "weekly") return addDays(dateKey, step * 7);
+  if (recurrence === "monthly") return addMonthsKeepingDay(dateKey, step);
+  if (recurrence === "yearly") return addYearsKeepingDay(dateKey, step);
+  return null;
+}
+
+export function addDurationSpan(startKey, value, unit) {
+  const start = clampDateKey(startKey);
+  const n = Math.max(0, Math.floor(Number(value) || 0));
+  if (!start || n <= 0) return start;
+  if (unit === "day") return addDays(start, n);
+  if (unit === "week") return addDays(start, n * 7);
+  if (unit === "month") return addMonthsKeepingDay(start, n);
+  if (unit === "year") return addYearsKeepingDay(start, n);
+  return start;
+}
+
+/**
+ * Resolve duração da UI em { maxOccurrences, until, untilExclusive }.
+ * duration: { mode: 'default'|'count'|'span'|'until', count?, value?, unit?, until? }
+ */
+export function resolveRecurrenceDuration(startKey, duration) {
+  if (!duration || duration.mode === "default" || !duration.mode) {
+    return {};
+  }
+  if (duration.mode === "count") {
+    const count = Math.min(
+      HARD_CAP,
+      Math.max(1, Math.floor(Number(duration.count) || 1))
+    );
+    return { maxOccurrences: count };
+  }
+  if (duration.mode === "until") {
+    const until = clampDateKey(duration.until);
+    return until ? { until } : {};
+  }
+  if (duration.mode === "span") {
+    const end = addDurationSpan(startKey, duration.value, duration.unit);
+    // Exclusivo: "por 3 meses" mensal = 3 ocorrências (não inclui o dia âncora+3m).
+    return end ? { untilExclusive: end } : {};
+  }
+  return {};
+}
+
+/**
+ * Expande datas de recorrência a partir da âncora.
+ * options.maxOccurrences — total de ocorrências (inclui a inicial)
+ * options.until — última data inclusiva
+ * options.untilExclusive — corta antes desta data
+ * Sem opções: ~1 ano (daily/weekly/monthly) ou 5 anos (yearly).
+ */
+export function expandRecurrenceDates(startKey, recurrence, options = {}) {
+  if (!VALID_RECURRENCE.has(recurrence)) return [startKey];
+  const start = clampDateKey(startKey);
+  if (!start) return [];
+
+  const maxOcc = Math.min(
+    HARD_CAP,
+    Math.max(
+      1,
+      Math.floor(
+        Number(options.maxOccurrences) || defaultMaxOccurrences(recurrence)
+      )
+    )
+  );
+  const until = options.until ? clampDateKey(options.until) : null;
+  const untilExclusive = options.untilExclusive
+    ? clampDateKey(options.untilExclusive)
+    : null;
+  if (until && until < start) return [start];
+  if (untilExclusive && untilExclusive <= start) return [start];
+
+  const out = [start];
+  for (let step = 1; out.length < maxOcc; step++) {
+    const next = nextRecurrenceDate(start, recurrence, step);
+    if (!next) break;
+    if (until && next > until) break;
+    if (untilExclusive && next >= untilExclusive) break;
+    out.push(next);
+  }
+  return out;
+}
+
+function mapEntryRow(row) {
+  return {
+    id: row.id,
+    amount_cents: row.amount_cents,
+    occurred_on: row.occurred_on,
+    note: row.note,
+    recurrence: row.recurrence || null,
+    series_id: row.series_id || null,
+    paid_at: row.paid_at || null,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    category_id: row.category_id,
+    category: row.finance_categories
+      ? {
+          id: row.finance_categories.id,
+          name: row.finance_categories.name,
+          kind: row.finance_categories.kind,
+        }
+      : null,
+  };
+}
+
+const ENTRY_SELECT =
+  "id, amount_cents, occurred_on, note, recurrence, series_id, paid_at, created_at, updated_at, category_id, finance_categories(id, name, kind)";
+
 export async function listFinanceEntries(
   championId,
   { limit = 30, offset = 0, from = null, to = null } = {}
@@ -268,9 +405,7 @@ export async function listFinanceEntries(
   const supabase = createAdminClient();
   let q = supabase
     .from("finance_entries")
-    .select(
-      "id, amount_cents, occurred_on, note, created_at, updated_at, category_id, finance_categories(id, name, kind)"
-    )
+    .select(ENTRY_SELECT)
     .eq("champion_id", championId)
     .order("occurred_on", { ascending: false })
     .order("id", { ascending: false })
@@ -282,22 +417,7 @@ export async function listFinanceEntries(
   const { data, error } = await q;
   if (error) throw new Error(error.message);
 
-  return (data || []).map((row) => ({
-    id: row.id,
-    amount_cents: row.amount_cents,
-    occurred_on: row.occurred_on,
-    note: row.note,
-    created_at: row.created_at,
-    updated_at: row.updated_at,
-    category_id: row.category_id,
-    category: row.finance_categories
-      ? {
-          id: row.finance_categories.id,
-          name: row.finance_categories.name,
-          kind: row.finance_categories.kind,
-        }
-      : null,
-  }));
+  return (data || []).map(mapEntryRow);
 }
 
 async function assertCategoryOwned(supabase, championId, categoryId, kind = null) {
@@ -317,7 +437,15 @@ async function assertCategoryOwned(supabase, championId, categoryId, kind = null
 
 export async function createFinanceEntry(
   championId,
-  { categoryId, amount, amountCents, occurredOn, note }
+  {
+    categoryId,
+    amount,
+    amountCents,
+    occurredOn,
+    note,
+    recurrence = null,
+    recurrenceDuration = null,
+  }
 ) {
   const cents =
     amountCents != null
@@ -326,39 +454,44 @@ export async function createFinanceEntry(
   if (!cents || cents <= 0) throw new Error("Valor inválido");
 
   const date = clampDateKey(occurredOn) || dateKeyInTz(new Date(), TZ);
+  const recur =
+    recurrence && VALID_RECURRENCE.has(recurrence) ? recurrence : null;
+
   const supabase = createAdminClient();
   await assertCategoryOwned(supabase, championId, categoryId);
 
+  const noteVal = note ? String(note).trim().slice(0, 280) : null;
+  const windowOpts = recur
+    ? resolveRecurrenceDuration(date, recurrenceDuration)
+    : {};
+  const dates = recur
+    ? expandRecurrenceDates(date, recur, windowOpts)
+    : [date];
+  const seriesId = recur ? randomUUID() : null;
+
+  const rows = dates.map((occurred_on) => ({
+    champion_id: championId,
+    category_id: Number(categoryId),
+    amount_cents: cents,
+    occurred_on,
+    note: noteVal,
+    recurrence: recur,
+    series_id: seriesId,
+  }));
+
   const { data, error } = await supabase
     .from("finance_entries")
-    .insert({
-      champion_id: championId,
-      category_id: Number(categoryId),
-      amount_cents: cents,
-      occurred_on: date,
-      note: note ? String(note).trim().slice(0, 280) : null,
-    })
-    .select(
-      "id, amount_cents, occurred_on, note, created_at, updated_at, category_id, finance_categories(id, name, kind)"
-    )
-    .single();
+    .insert(rows)
+    .select(ENTRY_SELECT);
   if (error) throw new Error(error.message);
 
+  const mapped = (data || [])
+    .map(mapEntryRow)
+    .sort((a, b) => String(a.occurred_on).localeCompare(String(b.occurred_on)));
+  const first = mapped.find((e) => e.occurred_on === date) || mapped[0];
   return {
-    id: data.id,
-    amount_cents: data.amount_cents,
-    occurred_on: data.occurred_on,
-    note: data.note,
-    created_at: data.created_at,
-    updated_at: data.updated_at,
-    category_id: data.category_id,
-    category: data.finance_categories
-      ? {
-          id: data.finance_categories.id,
-          name: data.finance_categories.name,
-          kind: data.finance_categories.kind,
-        }
-      : null,
+    ...first,
+    created_count: mapped.length,
   };
 }
 
@@ -396,33 +529,57 @@ export async function updateFinanceEntry(
     .update(patch)
     .eq("id", Number(entryId))
     .eq("champion_id", championId)
-    .select(
-      "id, amount_cents, occurred_on, note, created_at, updated_at, category_id, finance_categories(id, name, kind)"
-    )
+    .select(ENTRY_SELECT)
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Lançamento não encontrado");
 
-  return {
-    id: data.id,
-    amount_cents: data.amount_cents,
-    occurred_on: data.occurred_on,
-    note: data.note,
-    created_at: data.created_at,
-    updated_at: data.updated_at,
-    category_id: data.category_id,
-    category: data.finance_categories
-      ? {
-          id: data.finance_categories.id,
-          name: data.finance_categories.name,
-          kind: data.finance_categories.kind,
-        }
-      : null,
-  };
+  return mapEntryRow(data);
 }
 
-export async function deleteFinanceEntry(championId, entryId) {
+export async function setFinanceEntryPaid(championId, entryId, paid) {
   const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("finance_entries")
+    .update({
+      paid_at: paid ? new Date().toISOString() : null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", Number(entryId))
+    .eq("champion_id", championId)
+    .select(ENTRY_SELECT)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Lançamento não encontrado");
+  return mapEntryRow(data);
+}
+
+export async function deleteFinanceEntry(
+  championId,
+  entryId,
+  { deleteSeries = false } = {}
+) {
+  const supabase = createAdminClient();
+  const { data: existing, error: findErr } = await supabase
+    .from("finance_entries")
+    .select("id, series_id, occurred_on")
+    .eq("id", Number(entryId))
+    .eq("champion_id", championId)
+    .maybeSingle();
+  if (findErr) throw new Error(findErr.message);
+  if (!existing) throw new Error("Lançamento não encontrado");
+
+  if (deleteSeries && existing.series_id) {
+    const { error } = await supabase
+      .from("finance_entries")
+      .delete()
+      .eq("champion_id", championId)
+      .eq("series_id", existing.series_id)
+      .gte("occurred_on", existing.occurred_on);
+    if (error) throw new Error(error.message);
+    return { ok: true, deletedSeries: true };
+  }
+
   const { data, error } = await supabase
     .from("finance_entries")
     .delete()
@@ -448,7 +605,7 @@ export async function getFinanceChart(
   const { data, error } = await supabase
     .from("finance_entries")
     .select(
-      "amount_cents, occurred_on, finance_categories!inner(kind)"
+      "amount_cents, occurred_on, finance_categories!inner(id, name, kind)"
     )
     .eq("champion_id", championId)
     .gte("occurred_on", range.from)
@@ -460,9 +617,11 @@ export async function getFinanceChart(
   );
   let incomeTotal = 0;
   let expenseTotal = 0;
+  const categoryMap = new Map();
 
   for (const row of data || []) {
-    const kind = row.finance_categories?.kind;
+    const cat = row.finance_categories;
+    const kind = cat?.kind;
     if (kind !== "income" && kind !== "expense") continue;
     const k = bucketKey(row.occurred_on, mode);
     if (!map.has(k)) map.set(k, { income: 0, expense: 0 });
@@ -470,6 +629,17 @@ export async function getFinanceChart(
     cell[kind] += row.amount_cents;
     if (kind === "income") incomeTotal += row.amount_cents;
     else expenseTotal += row.amount_cents;
+
+    const catKey = `${kind}:${cat.id}`;
+    if (!categoryMap.has(catKey)) {
+      categoryMap.set(catKey, {
+        id: cat.id,
+        name: cat.name,
+        kind,
+        amount_cents: 0,
+      });
+    }
+    categoryMap.get(catKey).amount_cents += row.amount_cents;
   }
 
   const buckets = bucketKeys.map((k) => ({
@@ -478,6 +648,10 @@ export async function getFinanceChart(
     income_cents: map.get(k)?.income || 0,
     expense_cents: map.get(k)?.expense || 0,
   }));
+
+  const byCategory = [...categoryMap.values()].sort(
+    (a, b) => b.amount_cents - a.amount_cents
+  );
 
   return {
     period: range.period,
@@ -488,5 +662,6 @@ export async function getFinanceChart(
     expense_cents: expenseTotal,
     balance_cents: incomeTotal - expenseTotal,
     buckets,
+    by_category: byCategory,
   };
 }

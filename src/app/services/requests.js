@@ -72,6 +72,7 @@ export {
   fetchFinanceEntries,
   actionCreateFinanceEntry,
   actionUpdateFinanceEntry,
+  actionSetFinanceEntryPaid,
   actionDeleteFinanceEntry,
   fetchFinanceChart,
 } from "@/app/actions/tobias";
